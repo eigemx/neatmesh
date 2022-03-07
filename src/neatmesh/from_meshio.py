@@ -5,7 +5,6 @@ import meshio
 import numpy as np
 
 from .exceptions import InvalidMeshException
-from .trie import Trie
 
 
 class MeshIOFaceType:
@@ -40,13 +39,13 @@ meshio_2d: Final = {
 class FromMeshio3D:
     def __init__(self, mesh_file_path: str) -> None:
         try:
-            self.mesh_raw = meshio.read(mesh_file_path)
+            self.mesh = meshio.read(mesh_file_path)
         except meshio.ReadError as exception:
             error = "Could not open mesh file.\n"
             error += f"{exception}"
             raise InvalidMeshException(error) from exception
 
-        self.points = self.mesh_raw.points
+        self.points = self.mesh.points
         self.n_points = len(self.points)
 
         # list of points labels of processed faces (all types)
@@ -59,8 +58,11 @@ class FromMeshio3D:
         # maps face id to a list of cells id. A face is shared by max. 2 cells.
         self.faceid_to_cellid = {}
 
-        # keeps track of the face id to be processed.
+        # keep track of the face id to be processed.
         self.current_faceid = 0
+
+        # keep track of the cell id to be processed.
+        self.current_cellid = 0
 
         for cell_type, faces_fn in (
             (MeshIOCellType.Hex, self.hex_cell_faces),
@@ -69,7 +71,8 @@ class FromMeshio3D:
             (MeshIOCellType.Pyramid, self.pyramid_cell_faces),
         ):
             self.process_cells(cell_type, faces_fn)
-
+        
+        print(self.current_cellid, self.current_faceid)
 
     def face_exists(self, face_labels: List) -> bool:
         """Checks if a list of face labels (aka a face) exists or not
@@ -80,7 +83,7 @@ class FromMeshio3D:
         """
         return frozenset(face_labels) in self.faces_set
 
-    def register_face(self, face: List) -> int:
+    def add_face(self, face: List) -> int:
         """Adds a face to list of processed faces and assign an id for it.
         Args:
             face (List): list of face points labels
@@ -99,11 +102,11 @@ class FromMeshio3D:
 
     def link_face_to_cell(self, face: List, cellid: int) -> None:
         """Associates a face (list of points labels) to an owner or
-            a neighbor cell given the cell id.
-            Args:
-                face (List): list of face points labels
-                cellid (int): owner/neighbor cell id
-            """
+        a neighbor cell given the cell id.
+        Args:
+            face (List): list of face points labels
+            cellid (int): owner/neighbor cell id
+        """
         face_id = self.face_to_faceid[frozenset(face)]
 
         if face_id in self.faceid_to_cellid:
@@ -120,24 +123,23 @@ class FromMeshio3D:
             faces_list_fn (Callable): a function that returns a list of faces
                                       (list of points labels)for the type of cell given.
         """
-        cells = self.mesh_raw.get_cells_type(cell_type)
+        cells = self.mesh.get_cells_type(cell_type)
 
         if cells.size == 0:
             # mesh has no cells with the given type, nothing to do here
             return
-        # TODO:
-        # This is a bug.
-        # cell_id starts from zero for each cell_type
-        # we should keep track of cell_id externally
-        for cell_id, cell in enumerate(cells):
+
+        for cell in cells:
             faces = faces_list_fn(cell)
             for face in faces:
                 # have we met `face` before?
                 if not self.face_exists(face):
-                    self.register_face(face)
+                    self.add_face(face)
 
                 # link the face to the cell who owns it
-                self.link_face_to_cell(face, cell_id)
+                self.link_face_to_cell(face, self.current_cellid)
+
+            self.current_cellid += 1
 
     @staticmethod
     def hex_cell_faces(cell_points: List) -> List[List]:
@@ -165,13 +167,13 @@ class FromMeshio3D:
         Returns:
             List[List]: list of list of faces points labels
         """
-        faces = [
-            [cell_points[0], cell_points[2], cell_points[1]],
-            [cell_points[3], cell_points[4], cell_points[5]],
-            [cell_points[3], cell_points[0], cell_points[1], cell_points[4]],
-            [cell_points[0], cell_points[3], cell_points[5], cell_points[2]],
-            [cell_points[1], cell_points[2], cell_points[5], cell_points[4]],
-        ]
+        faces =(
+            (cell_points[0], cell_points[2], cell_points[1]),
+            (cell_points[3], cell_points[4], cell_points[5]),
+            (cell_points[3], cell_points[0], cell_points[1], cell_points[4]),
+            (cell_points[0], cell_points[3], cell_points[5], cell_points[2]),
+            (cell_points[1], cell_points[2], cell_points[5], cell_points[4]),
+        )
         return faces
 
     @staticmethod
@@ -182,35 +184,50 @@ class FromMeshio3D:
         Returns:
             List[List]: list of list of faces points labels
         """
-        faces = [
-            [cell_points[0], cell_points[2], cell_points[1]],
-            [cell_points[1], cell_points[2], cell_points[3]],
-            [cell_points[0], cell_points[1], cell_points[3]],
-            [cell_points[0], cell_points[3], cell_points[2]],
-        ]
+        faces = (
+            (cell_points[0], cell_points[2], cell_points[1]),
+            (cell_points[1], cell_points[2], cell_points[3]),
+            (cell_points[0], cell_points[1], cell_points[3]),
+            (cell_points[0], cell_points[3], cell_points[2]),
+        )
         return faces
 
     @staticmethod
     def pyramid_cell_faces(cell_points: List) -> List[List]:
-        raise NotImplementedError("Pyramid cell is not implemented.")
+        """Returns coordinates of 4 faces of a tetrahedral cell, using meshio nodes ordering
+        Args:
+            cell_points (List): list of points defining the cell
+        Returns:
+            List[List]: list of list of faces points labels
+        """
+        faces = (
+            (cell_points[2], cell_points[1], cell_points[0], cell_points[3]),
+            (cell_points[2], cell_points[3], cell_points[4]),
+            (cell_points[1], cell_points[4], cell_points[0]),
+            (cell_points[3], cell_points[0], cell_points[4]),
+        )
+        return faces
 
 
-def _raw_cell_type(cell_type: str) -> str:
+def _alphabetic_cell_type(cell_type: str) -> str:
+    """Return meshio cell type without numerical postfix"""
     return "".join(ch for ch in cell_type if ch.isalpha())
 
 
 def _is_3d(mesh: meshio.Mesh) -> bool:
+    """Check if mesh is 3-dimensional"""
     for cell_block in mesh.cells:
-        if _raw_cell_type(cell_block.type) in meshio_3d:
+        if _alphabetic_cell_type(cell_block.type) in meshio_3d:
             return True
     return False
 
 
 def _is_2d(mesh: meshio.Mesh) -> bool:
+    """Check if mesh is 2-dimensional"""
     if _is_3d(mesh):
         return False
 
     for cell_block in mesh.cells:
-        if _raw_cell_type(cell_block.type) in meshio_2d:
+        if _alphabetic_cell_type(cell_block.type) in meshio_2d:
             return True
     return False
