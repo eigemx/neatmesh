@@ -1,4 +1,4 @@
-from neatmesh.from_meshio import FromMeshio3D
+from neatmesh.meshio_handler import MeshioHandler3D
 
 if __name__ == "__main__":
-    mesh = FromMeshio3D("./neatmesh/test_meshes/tetra_wedge.med")
+    mesh = MeshioHandler3D("./neatmesh/test_meshes/tetra_wedge.med")
