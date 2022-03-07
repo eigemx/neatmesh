@@ -9,6 +9,9 @@ from .cell_faces import *
 
 class FromMeshio3D:
     def __init__(self, mesh_file_path: str) -> None:
+        #TODO: check if file exists outside of here,
+        # raise meshio.ReadError only in case meshio cannot read or
+        # support given mesh.
         try:
             self.mesh = meshio.read(mesh_file_path)
         except meshio.ReadError as exception:
