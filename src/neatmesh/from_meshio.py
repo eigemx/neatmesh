@@ -1,39 +1,10 @@
-from tkinter.tix import Tree
-from typing import Callable, Dict, Final, List
+from typing import Callable, List, Set, FrozenSet, Dict
 
 import meshio
-import numpy as np
+from numpy.typing import NDArray
 
 from .exceptions import InvalidMeshException
-
-
-class MeshIOFaceType:
-    """meshio face types"""
-
-    Quad = "quad"
-    Triangle = "triangle"
-
-
-class MeshIOCellType:
-    """meshio cell types"""
-
-    Hex = "hexahedron"
-    Tetra = "tetra"
-    Wedge = "wedge"
-    Pyramid = "pyramid"
-
-
-meshio_3d: Final = {
-    "tetra",
-    "hexahedron",
-    "wedge",
-    "pyramid",
-}
-
-meshio_2d: Final = {
-    "triangle",
-    "quad",
-}
+from .cell_faces import *
 
 
 class FromMeshio3D:
@@ -45,34 +16,44 @@ class FromMeshio3D:
             error += f"{exception}"
             raise InvalidMeshException(error) from exception
 
-        self.points = self.mesh.points
-        self.n_points = len(self.points)
+        self.points: NDArray = self.mesh.points
+        self.n_points: int = len(self.points)
 
         # list of points labels of processed faces (all types)
-        self.processed_faces = []
-        self.faces_set = set()
+        self.processed_faces: List[int] = []
+        self.faces_set: Set = set()
 
         # maps sorted face points labels tuple to the face index in `processed_faces`
-        self.face_to_faceid = {}
+        self.face_to_faceid: Dict[FrozenSet, int] = {}
 
         # maps face id to a list of cells id. A face is shared by max. 2 cells.
-        self.faceid_to_cellid = {}
+        self.faceid_to_cellid: Dict[int, int] = {}
 
         # keep track of the face id to be processed.
-        self.current_faceid = 0
+        self.current_faceid: int = 0
 
         # keep track of the cell id to be processed.
-        self.current_cellid = 0
+        self.current_cellid: int = 0
 
+    def process_mesh(self) -> None:
+        # TODO: Replace this with a dict[str, Callable],
+        # and make process_cells call the key directly.
+        # To avoid calling process_cells many times unnecessarily
         for cell_type, faces_fn in (
-            (MeshIOCellType.Hex, self.hex_cell_faces),
-            (MeshIOCellType.Tetra, self.tetra_cell_faces),
-            (MeshIOCellType.Wedge, self.wedge_cell_faces),
-            (MeshIOCellType.Pyramid, self.pyramid_cell_faces),
+            (MeshIOCellType.Hex, hex_cell_faces),
+            (MeshIOCellType.Hex20, hex20_cell_faces),
+            (MeshIOCellType.Hex24, hex20_cell_faces),
+            (MeshIOCellType.Hex27, hex20_cell_faces),
+            (MeshIOCellType.Tetra, tetra_cell_faces),
+            (MeshIOCellType.Tetra10, tetra10_cell_faces),
+            (MeshIOCellType.Wedge, wedge_cell_faces),
+            (MeshIOCellType.Wedge12, wedge12_cell_faces),
+            (MeshIOCellType.Wedge15, wedge12_cell_faces),
+            (MeshIOCellType.Pyramid, pyramid_cell_faces),
+            (MeshIOCellType.Pyramid13, pyramid13_cell_faces),
+            (MeshIOCellType.Pyramid14, pyramid13_cell_faces),
         ):
             self.process_cells(cell_type, faces_fn)
-        
-        print(self.current_cellid, self.current_faceid)
 
     def face_exists(self, face_labels: List) -> bool:
         """Checks if a list of face labels (aka a face) exists or not
@@ -90,9 +71,9 @@ class FromMeshio3D:
         Returns:
             int: newly added face id
         """
-        tface = frozenset(face)
-        self.face_to_faceid[tface] = self.current_faceid
-        self.faces_set.add(tface)
+        sface = frozenset(face)
+        self.face_to_faceid[sface] = self.current_faceid
+        self.faces_set.add(sface)
 
         # add face points labels to `processed_faces`
         self.processed_faces.append(face)
@@ -140,74 +121,6 @@ class FromMeshio3D:
                 self.link_face_to_cell(face, self.current_cellid)
 
             self.current_cellid += 1
-
-    @staticmethod
-    def hex_cell_faces(cell_points: List) -> List[List]:
-        """Returns coordinates of 6 faces of a hexahedron cell, using meshio nodes ordering
-        Args:
-            cell_points (List): list of points defining the cell
-        Returns:
-            List[List]: list of list of faces points labels
-        """
-        faces = (
-            (cell_points[0], cell_points[3], cell_points[2], cell_points[1]),
-            (cell_points[4], cell_points[5], cell_points[6], cell_points[7]),
-            (cell_points[0], cell_points[1], cell_points[5], cell_points[4]),
-            (cell_points[2], cell_points[3], cell_points[7], cell_points[6]),
-            (cell_points[0], cell_points[4], cell_points[7], cell_points[3]),
-            (cell_points[1], cell_points[2], cell_points[6], cell_points[5]),
-        )
-        return faces
-
-    @staticmethod
-    def wedge_cell_faces(cell_points: List) -> List[List]:
-        """Returns coordinates of 5 faces of a wedge cell, using meshio nodes ordering
-        Args:
-            cell_points (List): list of points defining the cell
-        Returns:
-            List[List]: list of list of faces points labels
-        """
-        faces =(
-            (cell_points[0], cell_points[2], cell_points[1]),
-            (cell_points[3], cell_points[4], cell_points[5]),
-            (cell_points[3], cell_points[0], cell_points[1], cell_points[4]),
-            (cell_points[0], cell_points[3], cell_points[5], cell_points[2]),
-            (cell_points[1], cell_points[2], cell_points[5], cell_points[4]),
-        )
-        return faces
-
-    @staticmethod
-    def tetra_cell_faces(cell_points: List) -> List[List]:
-        """Returns coordinates of 4 faces of a tetrahedral cell, using meshio nodes ordering
-        Args:
-            cell_points (List): list of points defining the cell
-        Returns:
-            List[List]: list of list of faces points labels
-        """
-        faces = (
-            (cell_points[0], cell_points[2], cell_points[1]),
-            (cell_points[1], cell_points[2], cell_points[3]),
-            (cell_points[0], cell_points[1], cell_points[3]),
-            (cell_points[0], cell_points[3], cell_points[2]),
-        )
-        return faces
-
-    @staticmethod
-    def pyramid_cell_faces(cell_points: List) -> List[List]:
-        """Returns coordinates of 4 faces of a tetrahedral cell, using meshio nodes ordering
-        Args:
-            cell_points (List): list of points defining the cell
-        Returns:
-            List[List]: list of list of faces points labels
-        """
-        faces = (
-            (cell_points[2], cell_points[1], cell_points[0], cell_points[3]),
-            (cell_points[2], cell_points[3], cell_points[4]),
-            (cell_points[1], cell_points[4], cell_points[0]),
-            (cell_points[3], cell_points[0], cell_points[4]),
-        )
-        return faces
-
 
 def _alphabetic_cell_type(cell_type: str) -> str:
     """Return meshio cell type without numerical postfix"""
