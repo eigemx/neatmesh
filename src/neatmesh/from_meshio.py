@@ -48,7 +48,6 @@ class FromMeshio3D:
 
         self.points = self.mesh_raw.points
         self.n_points = len(self.points)
-        self.n_cells = 0
 
         # list of points labels of processed faces (all types)
         self.processed_faces = []
@@ -79,12 +78,7 @@ class FromMeshio3D:
         Returns:
             bool: True if face exists, False otherwise
         """
-        '''return self.face_trie.search([
-            face_labels[0], face_labels[3], face_labels[2], face_labels[1]
-        ])'''
-        return frozenset((
-            face_labels[0], face_labels[3], face_labels[2], face_labels[1]
-        )) in self.faces_set
+        return frozenset(face_labels) in self.faces_set
 
     def register_face(self, face: List) -> int:
         """Adds a face to list of processed faces and assign an id for it.
@@ -95,7 +89,6 @@ class FromMeshio3D:
         """
         tface = frozenset(face)
         self.face_to_faceid[tface] = self.current_faceid
-        #self.face_trie.insert(tface)
         self.faces_set.add(tface)
 
         # add face points labels to `processed_faces`
@@ -114,9 +107,9 @@ class FromMeshio3D:
         face_id = self.face_to_faceid[frozenset(face)]
 
         if face_id in self.faceid_to_cellid:
-            self.faceid_to_cellid[face_id].append(cellid)
+            self.faceid_to_cellid[face_id][1] = cellid
         else:
-            self.faceid_to_cellid[face_id] = [cellid]
+            self.faceid_to_cellid[face_id] = [cellid, -1]
 
     def process_cells(self, cell_type: str, faces_list_fn: Callable) -> None:
         """Given a cell type and function for cell faces coordinates,
@@ -127,18 +120,13 @@ class FromMeshio3D:
             faces_list_fn (Callable): a function that returns a list of faces
                                       (list of points labels)for the type of cell given.
         """
-        cell_block = list(
-            filter(lambda cell_block: cell_block.type == cell_type, self.mesh_raw.cells)
-        )
+        cells = self.mesh_raw.get_cells_type(cell_type)
 
-        if len(cell_block) == 0:
+        if cells.size == 0:
             # mesh has no cells with the given type, nothing to do here
             return
 
-        cells = cell_block[0].data
-
         for cell_id, cell in enumerate(cells):
-            self.n_cells += 1
             faces = faces_list_fn(cell)
             for face in faces:
                 # have we met `face` before?
