@@ -7,8 +7,12 @@ class Mesh3D:
         self,
         points: np.ndarray,
         cells: List[np.ndarray],
-        connectivity_map: Dict[int : List[int]] = None,
+        face_sharing_matrix: np.ndarray= None,
     ) -> None:
+        # Points
         self.points = points
+        self.n_points = self.points.shape[0]
+        
+        
         self.cells = cells
-        self.connectivity_map = connectivity_map
+        self.face_sharing_matrix = face_sharing_matrix
