@@ -52,8 +52,7 @@ class FromMeshio3D:
 
         # list of points labels of processed faces (all types)
         self.processed_faces = []
-        
-        self.face_trie = Trie()
+        self.faces_set = set()
 
         # maps sorted face points labels tuple to the face index in `processed_faces`
         self.face_to_faceid = {}
@@ -80,9 +79,12 @@ class FromMeshio3D:
         Returns:
             bool: True if face exists, False otherwise
         """
-        return self.face_trie.search([
+        '''return self.face_trie.search([
             face_labels[0], face_labels[3], face_labels[2], face_labels[1]
-        ])
+        ])'''
+        return frozenset((
+            face_labels[0], face_labels[3], face_labels[2], face_labels[1]
+        )) in self.faces_set
 
     def register_face(self, face: List) -> int:
         """Adds a face to list of processed faces and assign an id for it.
@@ -91,9 +93,10 @@ class FromMeshio3D:
         Returns:
             int: newly added face id
         """
-        tface = tuple(face)
+        tface = frozenset(face)
         self.face_to_faceid[tface] = self.current_faceid
-        self.face_trie.insert(tface)
+        #self.face_trie.insert(tface)
+        self.faces_set.add(tface)
 
         # add face points labels to `processed_faces`
         self.processed_faces.append(face)
@@ -108,7 +111,7 @@ class FromMeshio3D:
                 face (List): list of face points labels
                 cellid (int): owner/neighbor cell id
             """
-        face_id = self.face_to_faceid[tuple(face)]
+        face_id = self.face_to_faceid[frozenset(face)]
 
         if face_id in self.faceid_to_cellid:
             self.faceid_to_cellid[face_id].append(cellid)
@@ -139,9 +142,7 @@ class FromMeshio3D:
             faces = faces_list_fn(cell)
             for face in faces:
                 # have we met `face` before?
-                '''if not self.face_exists(face):
-                    self.register_face(face)'''
-                if not self.face_trie.search(face):
+                if not self.face_exists(face):
                     self.register_face(face)
 
                 # link the face to the cell who owns it
@@ -155,14 +156,14 @@ class FromMeshio3D:
         Returns:
             List[List]: list of list of faces points labels
         """
-        faces = [
-            [cell_points[0], cell_points[3], cell_points[2], cell_points[1]],
-            [cell_points[4], cell_points[5], cell_points[6], cell_points[7]],
-            [cell_points[0], cell_points[1], cell_points[5], cell_points[4]],
-            [cell_points[2], cell_points[3], cell_points[7], cell_points[6]],
-            [cell_points[0], cell_points[4], cell_points[7], cell_points[3]],
-            [cell_points[1], cell_points[2], cell_points[6], cell_points[5]],
-        ]
+        faces = (
+            (cell_points[0], cell_points[3], cell_points[2], cell_points[1]),
+            (cell_points[4], cell_points[5], cell_points[6], cell_points[7]),
+            (cell_points[0], cell_points[1], cell_points[5], cell_points[4]),
+            (cell_points[2], cell_points[3], cell_points[7], cell_points[6]),
+            (cell_points[0], cell_points[4], cell_points[7], cell_points[3]),
+            (cell_points[1], cell_points[2], cell_points[6], cell_points[5]),
+        )
         return faces
 
     @staticmethod
