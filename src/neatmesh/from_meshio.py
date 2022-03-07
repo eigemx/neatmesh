@@ -125,7 +125,10 @@ class FromMeshio3D:
         if cells.size == 0:
             # mesh has no cells with the given type, nothing to do here
             return
-
+        # TODO:
+        # This is a bug.
+        # cell_id starts from zero for each cell_type
+        # we should keep track of cell_id externally
         for cell_id, cell in enumerate(cells):
             faces = faces_list_fn(cell)
             for face in faces:
