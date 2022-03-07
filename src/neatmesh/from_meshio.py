@@ -20,14 +20,14 @@ class FromMeshio3D:
         self.n_points: int = len(self.points)
 
         # list of points labels of processed faces (all types)
-        self.processed_faces: List[int] = []
+        self.processed_faces: List[Tuple[int, ...]] = []
         self.faces_set: Set = set()
 
         # maps sorted face points labels tuple to the face index in `processed_faces`
         self.face_to_faceid: Dict[FrozenSet, int] = {}
 
         # maps face id to a list of cells id. A face is shared by max. 2 cells.
-        self.faceid_to_cellid: Dict[int, int] = {}
+        self.faceid_to_cellid: Dict[int, List[int]] = {}
 
         # keep track of the face id to be processed.
         self.current_faceid: int = 0
@@ -55,7 +55,7 @@ class FromMeshio3D:
         ):
             self.process_cells(cell_type, faces_fn)
 
-    def face_exists(self, face_labels: List) -> bool:
+    def face_exists(self, face_labels: Tuple[int, ...]) -> bool:
         """Checks if a list of face labels (aka a face) exists or not
         Args:
             face_labels (list): list of face points labels
@@ -64,7 +64,7 @@ class FromMeshio3D:
         """
         return frozenset(face_labels) in self.faces_set
 
-    def add_face(self, face: List) -> int:
+    def add_face(self, face: Tuple[int, ...]) -> int:
         """Adds a face to list of processed faces and assign an id for it.
         Args:
             face (List): list of face points labels
@@ -81,7 +81,7 @@ class FromMeshio3D:
         self.current_faceid += 1
         return self.current_faceid - 1
 
-    def link_face_to_cell(self, face: List, cellid: int) -> None:
+    def link_face_to_cell(self, face: Tuple[int, ...], cellid: int) -> None:
         """Associates a face (list of points labels) to an owner or
         a neighbor cell given the cell id.
         Args:
@@ -95,7 +95,11 @@ class FromMeshio3D:
         else:
             self.faceid_to_cellid[face_id] = [cellid, -1]
 
-    def process_cells(self, cell_type: str, faces_list_fn: Callable) -> None:
+    def process_cells(
+        self,
+        cell_type: str,
+        faces_list_fn: Callable[[List[int]], Tuple[Tuple[int, ...], ...]],
+    ) -> None:
         """Given a cell type and function for cell faces coordinates,
         loop over each cell, extract faces
         and construct owner-neighbor connectivity.
@@ -121,6 +125,7 @@ class FromMeshio3D:
                 self.link_face_to_cell(face, self.current_cellid)
 
             self.current_cellid += 1
+
 
 def _alphabetic_cell_type(cell_type: str) -> str:
     """Return meshio cell type without numerical postfix"""
