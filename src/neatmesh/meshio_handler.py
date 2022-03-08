@@ -30,10 +30,10 @@ class MeshioHandler3D(MeshHandler):
         )
 
         # list of points labels of processed faces (all types)
-        self.processed_faces = []
+        self.faces = []
         self.faces_set: Set[FrozenSet] = set()
 
-        # map face points to face index in `processed_faces`
+        # map face points to face index in `faces`
         self.face_to_faceid = {}
 
         # maps face id to a list of cells id. A face is shared by max. 2 cells.
@@ -91,8 +91,8 @@ class MeshioHandler3D(MeshHandler):
         self.face_to_faceid[sface] = self.current_faceid
         self.faces_set.add(sface)
 
-        # add face points labels to `processed_faces`
-        self.processed_faces.append(face)
+        # add face points labels to `faces`
+        self.faces.append(face)
 
         self.current_faceid += 1
         return self.current_faceid - 1
@@ -306,14 +306,7 @@ def tetra10_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         (cell[0], cell[6], cell[2], cell[5], cell[1], cell[4]),
         (cell[1], cell[5], cell[2], cell[9], cell[3], cell[8]),
         (cell[0], cell[4], cell[1], cell[8], cell[3], cell[7]),
-        (
-            cell[0],
-            cell[7],
-            cell[3],
-            cell[9],
-            cell[2],
-            cell[6],
-        ),
+        (cell[0], cell[7], cell[3], cell[9], cell[2], cell[6]),
     )
     return faces
 
@@ -347,13 +340,6 @@ def pyramid13_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         (cell[2], cell[6], cell[1], cell[5], cell[0], cell[8], cell[3], cell[7]),
         (cell[2], cell[7], cell[3], cell[12], cell[4], cell[11]),
         (cell[1], cell[10], cell[4], cell[9], cell[0], cell[5]),
-        (
-            cell[3],
-            cell[8],
-            cell[0],
-            cell[9],
-            cell[4],
-            cell[12],
-        ),
+        (cell[3], cell[8], cell[0], cell[9], cell[4], cell[12])
     )
     return faces
