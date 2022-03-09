@@ -43,18 +43,7 @@ def _sub(a, b):
 
 
 def tetra_vol(a, b, c, d):
-    return (
-        abs(
-            _det(
-                (
-                    _sub(a, b),
-                    _sub(b, c),
-                    _sub(c, d),
-                )
-            )
-        )
-        / 6.0
-    )
+    return abs(_det((_sub(a, b), _sub(b, c),_sub(c, d)))) / 6.0
 
 
 def _norm(vec: np.ndarray) -> float:
@@ -151,33 +140,32 @@ class MeshQuality3D:
                 self.faces_normals[i, :],
             ) = face_data_handler[len(face)](face)
 
-    def calc_cell_data_tetra(
-        self, cell: Tuple[int, ...]
-    ) -> Tuple[float, float]:
+    def calc_cell_data_tetra(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         points = [
             self.mh.points[cell[0]],
             self.mh.points[cell[1]],
             self.mh.points[cell[2]],
-            self.mh.points[cell[3]]
+            self.mh.points[cell[3]],
         ]
         return _mean(points), tetra_vol(*points)
-    
-    def calc_cell_data_hex(self, cell: Tuple[int, ...]
-    ) -> Tuple[float, float]:
+
+    def calc_cell_data_hex(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         points = [self.mh.points[i] for i in cell]
         x = _norm(_sub(points[0], points[1]))
         y = _norm(_sub(points[0], points[3]))
         z = _norm(_sub(points[0], points[4]))
         volume = x * y * z
-        
+
         return _mean(points), volume
-    
-    def calc_cell_data_wedge(self, cell: Tuple[int, ...]
-    ) -> Tuple[float, float]:
+
+    def calc_cell_data_wedge(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         points = [self.mh.points[i] for i in cell]
-    
-    def calc_cell_data_pyramid(self, cell: Tuple[int, ...]
-    ) -> Tuple[float, float]:
+        face_id = self.mh.face_to_faceid[frozenset([cell[0], cell[1], cell[2]])]
+        area = self.faces_areas[face_id]
+        volume = area * _norm(_sub(points[3], points[0]))
+        return _mean(points), volume
+
+    def calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         points = [self.mh.points[i] for i in cell]
         raise NotImplemented("Not Implemented")
 
@@ -188,6 +176,11 @@ class MeshQuality3D:
             MeshIOCellType.Hex24: self.calc_cell_data_hex,
             MeshIOCellType.Hex27: self.calc_cell_data_hex,
             MeshIOCellType.Tetra: self.calc_cell_data_tetra,
+            MeshIOCellType.Wedge: self.calc_cell_data_wedge,
+            MeshIOCellType.Wedge12: self.calc_cell_data_wedge,
+            MeshIOCellType.Wedge15: self.calc_cell_data_wedge,
         }
         for i, (cell, cell_type) in enumerate(self.mh.cells()):
-            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler[cell_type](cell)
+            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler[
+                cell_type
+            ](cell)
