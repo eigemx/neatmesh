@@ -50,8 +50,10 @@ class MeshioHandler3D:
         for cell_type, faces_fn in cell_type_handler_map.items():
             self.process_cells(cell_type, faces_fn)
 
-    def cells(self):
+    def cells(self) -> Tuple[Tuple[int, ...], MeshIOCellType]:
         for cell_block in self.mesh.cells:
+            if cell_block.type not in cell_type_handler_map:
+                continue
             for cell in cell_block.data:
                 yield cell, cell_block.type
 

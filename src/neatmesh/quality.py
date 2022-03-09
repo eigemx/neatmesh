@@ -1,8 +1,64 @@
-from typing import Tuple
+from typing import Tuple, List
+from math import sqrt
 
 import numpy as np
+from numpy.linalg import norm
 
 from .meshio_handler import MeshioHandler3D, cell_type_handler_map, MeshIOCellType
+
+
+def _cross(left: np.ndarray, right: np.ndarray) -> np.ndarray:
+    x = (left[1] * right[2]) - (left[2] * right[1])
+    y = (left[2] * right[0]) - (left[0] * right[2])
+    z = (left[0] * right[1]) - (left[1] * right[0])
+    return [x, y, z]
+
+
+def _sum(points: Tuple[np.ndarray, ...]) -> np.ndarray:
+    out = [0, 0, 0]
+    for point in points:
+        out += point
+    return out
+
+
+def _mean(points: Tuple[np.ndarray, ...]) -> np.ndarray:
+    out = [0, 0, 0]
+    for point in points:
+        out[0] += point[0]
+        out[1] += point[1]
+        out[2] += point[2]
+    return out
+
+
+def _det(m):
+    return (
+        m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+        - m[1][0] * (m[0][1] * m[2][2] - m[0][2] * m[2][1])
+        + m[2][0] * (m[0][1] * m[1][2] - m[0][2] * m[1][1])
+    )
+
+
+def _sub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def tetra_vol(a, b, c, d):
+    return (
+        abs(
+            _det(
+                (
+                    _sub(a, b),
+                    _sub(b, c),
+                    _sub(c, d),
+                )
+            )
+        )
+        / 6.0
+    )
+
+
+def _norm(vec: np.ndarray) -> float:
+    return sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
 
 
 class MeshQuality3D:
@@ -21,10 +77,6 @@ class MeshQuality3D:
         self.n_cells = mh.n_cells
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
         self.cells_volumes = np.zeros(shape=(self.n_cells,))
-
-        self.calc_cell_types_counts()
-        self.calc_faces_data()
-        self.calc_cells_data()
 
     def calc_cell_types_counts(self) -> None:
         self.hex_count = sum(
@@ -65,99 +117,66 @@ class MeshQuality3D:
                 len(self.mh.mesh.get_cells_type(mtype).data)
                 for mtype in (
                     MeshIOCellType.Wedge,
-                    MeshIOCellType.Wedge12,
+                    # MeshIOCellType.Wedge12,
                     MeshIOCellType.Wedge15,
                 )
             ]
         )
 
-    @staticmethod
-    def calc_face_data(
-        face: Tuple[int, ...], mh: MeshioHandler3D
-    ) -> Tuple[float, float, float]:
-        face_size = len(face)
-        vertices = [mh.points[i] for i in face]
-        geo_center = np.sum(vertices, axis=0) / face_size
+    def calc_face_data_tri(self, face: Tuple[int, ...]) -> Tuple[float, float, float]:
+        p1, p2, p3 = [self.mh.points[i] for i in face]
+        face_center = _mean([p1, p2, p3])
+        face_normal = _cross((p2 - p1), (p3 - p1))
+        face_area = _norm(face_normal) / 2.0
+        return face_center, face_area, face_normal
 
-        face_total_area = 0.0
-        face_normal_vector = np.zeros((3,))
-        face_centroid = np.zeros((3,))
-
-        # form the traingular subfaces.
-        # each face is constructed using an edge as the base of
-        # the triangle and geometric center as its apex.
-        for i in range(face_size):
-            # Set the subface points
-            p1 = vertices[i]
-            p2 = vertices[(i + 1) % face_size]
-            p3 = geo_center
-
-            # calculate the subface geometric center
-            subface_geo_center = np.sum([p1, p2, p3], axis=0) / 3.0
-
-            # calculate the area and normal vector 'sf' for the subface
-            sf = np.cross((p2 - p1), (p3 - p1))
-            area = np.linalg.norm(sf) / 2.0
-
-            face_normal_vector += sf
-            face_total_area += area
-            face_centroid = face_centroid + (area * subface_geo_center)
-
-        face_centroid /= face_total_area
-        face_normal_vector /= 2.0
-
-        return (face_centroid, face_total_area, face_normal_vector)
+    def calc_face_data_quad(self, face: Tuple[int, ...]) -> Tuple[float, float, float]:
+        tri1_data = self.calc_face_data_tri((face[0], face[1], face[2]))
+        tri2_data = self.calc_face_data_tri((face[0], face[2], face[3]))
+        quad_center = _mean([tri1_data[0], tri2_data[0]])
+        quad_area = tri1_data[1] + tri2_data[1]
+        quad_normal = _mean([tri1_data[2], tri2_data[2]])
+        return quad_center, quad_area, quad_normal
 
     def calc_faces_data(self) -> None:
+        face_data_handler = {
+            3: self.calc_face_data_tri,
+            4: self.calc_face_data_quad,
+        }
+
         for i, face in enumerate(self.mh.faces):
-            face_centroid, face_total_area, face_normal_vector = self.calc_face_data()
-            self.faces_centers[i,:] = face_centroid
-            self.faces_areas[i] = face_total_area
-            self.faces_normals[i,:] = face_normal_vector
-            
-            if len(face) == 3:
-                self.n_tri_faces += 1
-            else:
-                self.n_quad_faces += 1
+            (
+                self.faces_centers[i, :],
+                self.faces_areas[i],
+                self.faces_normals[i, :],
+            ) = face_data_handler[len(face)](face)
 
-    def calc_cell_data(
-        self, cell: Tuple[int, ...], cell_type: MeshIOCellType, mh: MeshioHandler3D
-    ) -> Tuple[float, float, float]:
-        geo_centeroid = np.zeros((3,))
-
-        cell_faces = cell_type_handler_map[cell_type](cell)
-
-        for face in cell_faces:
-            face_id = mh.face_to_faceid[frozenset(face)]
-            geo_centeroid += self.faces_centers[face_id, :]
-
-        geo_centeroid /= len(self.faces)
-
-        # construct a pyramid with each cell face as the base and geometric center as the apex.
-        element_volume = 0.0
-        element_centroid = np.zeros((3,))
-
-        for face in self.cell_faces:
-            face_id = mh.face_to_faceid[frozenset(face)]
-            face_centroid = self.faces_centers[face_id, :]
-            face_area = self.faces_areas[face_id]
-
-            # pyramid centroid is located on 0.25 the distance between the base and the apex.
-            pyramid_centroid = (0.75 * face_centroid) + (0.25 * geo_centeroid)
-            pyramid_volume = (
-                (1.0 / 3.0) * face_area * np.linalg.norm(face_centroid - geo_centeroid)
-            )
-
-            element_volume += pyramid_volume
-
-            # element_centroid will be divided by total volume after the end of faces loop
-            element_centroid += pyramid_volume * pyramid_centroid
-
-        # Finally, calculate the volume weighted element centre.
-        element_centroid = element_centroid / element_volume
-
-        return element_centroid, element_volume
+    def calc_cell_data_tetra(
+        self, cell: Tuple[int, ...]
+    ) -> Tuple[float, float]:
+        points = [
+            self.mh.points[cell[0]],
+            self.mh.points[cell[1]],
+            self.mh.points[cell[2]],
+            self.mh.points[cell[3]]
+        ]
+        return _mean(points), tetra_vol(*points)
+    
+    def calc_cell_data_hex(self, cell: Tuple[int, ...]
+    ) -> Tuple[float, float]:
+        points = [self.mh.points[i] for i in cell]
+    
+    def calc_cell_data_wedge(self, cell: Tuple[int, ...]
+    ) -> Tuple[float, float]:
+        points = [self.mh.points[i] for i in cell]
+    
+    def calc_cell_data_pyramid(self, cell: Tuple[int, ...]
+    ) -> Tuple[float, float]:
+        points = [self.mh.points[i] for i in cell]
+        raise NotImplemented("Not Implemented")
 
     def calc_cells_data(self) -> None:
-        for cell in self.mh.cells():
-            
+        for i, (cell, cell_type) in enumerate(self.mh.cells()):
+            self.cells_centers[i, :], self.cells_volumes[i] = self.calc_cell_data_tetra(
+                cell
+            )

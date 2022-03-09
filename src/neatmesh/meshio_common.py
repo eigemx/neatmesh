@@ -186,7 +186,7 @@ cell_type_handler_map = {
     MeshIOCellType.Tetra: tetra_cell_faces,
     MeshIOCellType.Tetra10: tetra10_cell_faces,
     MeshIOCellType.Wedge: wedge_cell_faces,
-    MeshIOCellType.Wedge12: wedge12_cell_faces,
+    #MeshIOCellType.Wedge12: wedge12_cell_faces,
     MeshIOCellType.Wedge15: wedge12_cell_faces,
     MeshIOCellType.Pyramid: pyramid_cell_faces,
     MeshIOCellType.Pyramid13: pyramid13_cell_faces,
