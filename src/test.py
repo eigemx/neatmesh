@@ -3,7 +3,7 @@ from neatmesh.quality import MeshQuality3D
 
 if __name__ == "__main__":
     print("Reading mesh...")
-    mesh = MeshioHandler3D("./neatmesh/test_meshes/fine_cylinder.med")
+    mesh = MeshioHandler3D("./neatmesh/test_meshes/fine_hex_mesh.med")
     mesh.process_mesh()
 
     q = MeshQuality3D(mesh)

@@ -165,6 +165,12 @@ class MeshQuality3D:
     def calc_cell_data_hex(self, cell: Tuple[int, ...]
     ) -> Tuple[float, float]:
         points = [self.mh.points[i] for i in cell]
+        x = _norm(_sub(points[0], points[1]))
+        y = _norm(_sub(points[0], points[3]))
+        z = _norm(_sub(points[0], points[4]))
+        volume = x * y * z
+        
+        return _mean(points), volume
     
     def calc_cell_data_wedge(self, cell: Tuple[int, ...]
     ) -> Tuple[float, float]:
@@ -176,7 +182,12 @@ class MeshQuality3D:
         raise NotImplemented("Not Implemented")
 
     def calc_cells_data(self) -> None:
+        cell_type_data_handler = {
+            MeshIOCellType.Hex: self.calc_cell_data_hex,
+            MeshIOCellType.Hex20: self.calc_cell_data_hex,
+            MeshIOCellType.Hex24: self.calc_cell_data_hex,
+            MeshIOCellType.Hex27: self.calc_cell_data_hex,
+            MeshIOCellType.Tetra: self.calc_cell_data_tetra,
+        }
         for i, (cell, cell_type) in enumerate(self.mh.cells()):
-            self.cells_centers[i, :], self.cells_volumes[i] = self.calc_cell_data_tetra(
-                cell
-            )
+            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler[cell_type](cell)
