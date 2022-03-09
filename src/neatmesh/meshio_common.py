@@ -138,9 +138,10 @@ def pyramid13_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         (cell[2], cell[6], cell[1], cell[5], cell[0], cell[8], cell[3], cell[7]),
         (cell[2], cell[7], cell[3], cell[12], cell[4], cell[11]),
         (cell[1], cell[10], cell[4], cell[9], cell[0], cell[5]),
-        (cell[3], cell[8], cell[0], cell[9], cell[4], cell[12])
+        (cell[3], cell[8], cell[0], cell[9], cell[4], cell[12]),
     )
     return faces
+
 
 class MeshIOFaceType:
     """meshio face types"""
@@ -186,7 +187,7 @@ cell_type_handler_map = {
     MeshIOCellType.Tetra: tetra_cell_faces,
     MeshIOCellType.Tetra10: tetra10_cell_faces,
     MeshIOCellType.Wedge: wedge_cell_faces,
-    #MeshIOCellType.Wedge12: wedge12_cell_faces,
+    # MeshIOCellType.Wedge12: wedge12_cell_faces,
     MeshIOCellType.Wedge15: wedge12_cell_faces,
     MeshIOCellType.Pyramid: pyramid_cell_faces,
     MeshIOCellType.Pyramid13: pyramid13_cell_faces,
