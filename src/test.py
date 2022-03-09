@@ -1,8 +1,17 @@
 from neatmesh.meshio_handler import MeshioHandler3D
+from neatmesh.quality import MeshQuality3D
 
 if __name__ == "__main__":
-    mesh = MeshioHandler3D("./neatmesh/test_meshes/tetra_wedge.med")
-    """cells = mesh.cells()
+    print("Reading mesh...")
+    mesh = MeshioHandler3D("./neatmesh/test_meshes/fine_cylinder.med")
+    mesh.process_mesh()
+
+    q = MeshQuality3D(mesh)
+    print("Getting mesh cell types...")
+    q.calc_cell_types_counts()
+
+    print("Calculating face centers, normals and areas...")
+    q.calc_faces_data()
     
-    for _ in range(mesh.n_cells):
-        print(next(cells))"""
+    print("Calculating cell centers and volumes...")
+    q.calc_cells_data()
