@@ -1,9 +1,9 @@
-from neatmesh.meshio_handler import MeshioHandler3D
-from neatmesh.quality import QualityInspector3D
+from neatmesh._reader import MeshReader3D
+from neatmesh._quality import QualityInspector3D
 
 if __name__ == "__main__":
     print("Reading mesh...")
-    mesh = MeshioHandler3D("./neatmesh/test_meshes/fine_cylinder.med")
+    mesh = MeshReader3D("./neatmesh/test_meshes/tetra_wedge.med")
     mesh.process_mesh()
 
     q = QualityInspector3D(mesh)
@@ -15,3 +15,6 @@ if __name__ == "__main__":
     
     print("Calculating cell centers and volumes...")
     q.calc_cells_data()
+
+    print(q.mesh_bounding_box())
+    print(q.free_nodes_count())
