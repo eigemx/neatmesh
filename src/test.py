@@ -3,7 +3,7 @@ from neatmesh._quality import QualityInspector3D
 
 if __name__ == "__main__":
     print("Reading mesh...")
-    mesh = MeshReader3D("./neatmesh/test_meshes/tetra_wedge.med")
+    mesh = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
     mesh.process_mesh()
 
     q = QualityInspector3D(mesh)
@@ -16,5 +16,5 @@ if __name__ == "__main__":
     print("Calculating cell centers and volumes...")
     q.calc_cells_data()
 
-    print(q.mesh_bounding_box())
-    print(q.free_nodes_count())
+    print('Mesh bounding box: ', q.mesh_bounding_box())
+    print('Count of duplicate nodes: ', q.duplicate_nodes_count())
