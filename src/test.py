@@ -1,12 +1,12 @@
 from neatmesh.meshio_handler import MeshioHandler3D
-from neatmesh.quality import MeshQuality3D
+from neatmesh.quality import QualityInspector3D
 
 if __name__ == "__main__":
     print("Reading mesh...")
-    mesh = MeshioHandler3D("./neatmesh/test_meshes/tetra_wedge.med")
+    mesh = MeshioHandler3D("./neatmesh/test_meshes/fine_cylinder.med")
     mesh.process_mesh()
 
-    q = MeshQuality3D(mesh)
+    q = QualityInspector3D(mesh)
     print("Getting mesh cell types...")
     q.calc_cell_types_counts()
 

@@ -50,7 +50,7 @@ def _norm(vec: np.ndarray) -> float:
     return sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
 
 
-class MeshQuality3D:
+class QualityInspector3D:
     def __init__(self, mh: MeshioHandler3D) -> None:
         self.mh = mh
 
