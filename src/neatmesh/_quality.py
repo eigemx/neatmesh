@@ -26,6 +26,10 @@ def _mean(points: Tuple[np.ndarray, ...]) -> np.ndarray:
         out[0] += point[0]
         out[1] += point[1]
         out[2] += point[2]
+    n = len(points)
+    out[0] /= n
+    out[1] /= n
+    out[2] /= n
     return out
 
 
