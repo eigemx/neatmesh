@@ -1,13 +1,13 @@
-from typing import Callable, FrozenSet, List, Set, Tuple, Final, Dict
+from typing import Callable, FrozenSet, List, Set, Tuple, Dict
 
 from meshio import ReadError, read
 
-from .exceptions import InvalidMeshException
-from .meshio_common import *
+from ._exceptions import InvalidMeshException
+from ._common import *
 
 
 # TODO: Check for unsupported cell types
-class MeshioHandler3D:
+class MeshReader3D:
     def __init__(self, mesh_file_path: str) -> None:
         # TODO: check if file exists outside of here,
         # raise meshio.ReadError only in case meshio cannot read or
@@ -47,12 +47,12 @@ class MeshioHandler3D:
         self.current_cellid: int = 0
 
     def process_mesh(self) -> None:
-        for cell_type, faces_fn in cell_type_handler_map.items():
+        for cell_type, faces_fn in cell_type_to_faces_func.items():
             self.process_cells(cell_type, faces_fn)
 
     def cells(self) -> Tuple[Tuple[int, ...], MeshIOCellType]:
         for cell_block in self.mesh.cells:
-            if cell_block.type not in cell_type_handler_map:
+            if cell_block.type not in cell_type_to_faces_func:
                 continue
             for cell in cell_block.data:
                 yield cell, cell_block.type

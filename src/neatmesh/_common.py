@@ -179,7 +179,7 @@ meshio_2d: Final = {
     "quad",
 }
 
-cell_type_handler_map = {
+cell_type_to_faces_func = {
     MeshIOCellType.Hex: hex_cell_faces,
     MeshIOCellType.Hex20: hex20_cell_faces,
     MeshIOCellType.Hex24: hex20_cell_faces,
