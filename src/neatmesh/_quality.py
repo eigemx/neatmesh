@@ -116,7 +116,7 @@ class QualityInspector3D:
         x_max, y_max, z_max = np.max(self.reader.points, axis=0)
         return ((x_min, y_min, z_min), (x_max, y_max, z_max))
 
-    def free_nodes_count(self) -> int:
+    def duplicate_nodes_count(self) -> int:
         return self.reader.points.shape[0] - np.unique(self.reader.points, axis=0).shape[0]
 
     def calc_face_data_tri(self, face: Tuple[int, ...]) -> Tuple[float, float, float]:
