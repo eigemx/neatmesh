@@ -168,8 +168,8 @@ class MeshIOCellType:
 
 
 meshio_3d: Final = {
-    "tetra", 
-    "tetra10", 
+    "tetra",
+    "tetra10",
     "hexahedron",
     "hexahedron20",
     "hexahedron24",
@@ -195,7 +195,7 @@ cell_type_to_faces_func = {
     MeshIOCellType.Tetra: tetra_cell_faces,
     MeshIOCellType.Tetra10: tetra10_cell_faces,
     MeshIOCellType.Wedge: wedge_cell_faces,
-    MeshIOCellType.Wedge12: wedge12_cell_faces,
+    # MeshIOCellType.Wedge12: wedge12_cell_faces,
     MeshIOCellType.Wedge15: wedge12_cell_faces,
     MeshIOCellType.Pyramid: pyramid_cell_faces,
     MeshIOCellType.Pyramid13: pyramid13_cell_faces,
