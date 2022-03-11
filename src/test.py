@@ -1,5 +1,8 @@
 from neatmesh._reader import MeshReader3D
 from neatmesh._quality import QualityInspector3D
+
+import numpy as np
+
 from rich import print as rprint
 
 
@@ -12,19 +15,30 @@ if __name__ == "__main__":
 |_| |_|\___|\__,_|\__|_| |_| |_|\___|___|_| |_|
 
 version: 0.1b | license: MIT""")
-    print("Reading mesh...")
-    mesh = MeshReader3D("./neatmesh/test_meshes/tetra_pyramid.med")
+    rprint("Reading mesh...")
+    mesh = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
     mesh.process_mesh()
 
     q = QualityInspector3D(mesh)
-    print("Collecting cell types...")
+    rprint("Collecting cell types...")
     q.calc_cell_types_counts()
 
-    print("Calculating face centers, normals and areas...")
+    rprint("Calculating face centers, normals and areas...")
     q.calc_faces_data()
     
-    print("Calculating cell centers and volumes...")
+    rprint("Calculating cell centers and volumes...")
     q.calc_cells_data()
+    
+    print("Checking Non-Orthogonality...")
+    q.calc_nonortho()
+    rprint(
+        f"non-orthogonality max. = {max(q.non_ortho):3f}"
+        f", min. = {min(q.non_ortho):3f}," 
+        f"mean = {np.mean(np.asarray(q.non_ortho)):3f}," 
+        f"std = {np.std(np.asarray(q.non_ortho)):3f}"
+    )
+    
 
-    print('Mesh bounding box: ', q.mesh_bounding_box())
-    print('Count of duplicate nodes: ', q.duplicate_nodes_count())
+    rprint('Mesh bounding box: ', q.mesh_bounding_box())
+    rprint('Count of duplicate nodes: ', q.duplicate_nodes_count())
+    
