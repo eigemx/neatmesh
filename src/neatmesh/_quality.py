@@ -1,12 +1,13 @@
-from typing import FrozenSet, Tuple
+from typing import Tuple
 from math import sqrt, pi, acos
 
 import numpy as np
 
 from ._reader import MeshReader3D, MeshIOCellType
+from ._common import alphabetic_cell_type
 
 
-# We implement basic vector operations, because for small size of points
+# We implement basic vector operations, because for small size of np.arrays
 # numpy equivalent of such functions are substantially slower.
 
 
@@ -61,60 +62,26 @@ class QualityInspector3D:
         self.n_points = mr.n_points
 
         self.n_faces = len(mr.faces)
-        self.n_quad_faces = 0
-        self.n_tri_faces = 0
-        self.faces_areas = np.zeros(shape=(self.n_faces,))
-        self.faces_centers = np.zeros(shape=(self.n_faces, 3))
-        self.faces_normals = np.zeros(shape=(self.n_faces, 3))
 
         self.n_cells = mr.n_cells
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
         self.cells_volumes = np.zeros(shape=(self.n_cells,))
 
     def calc_cell_types_counts(self) -> None:
-        self.hex_count = sum(
-            [
-                len(self.reader.mesh.get_cells_type(mtype).data)
-                for mtype in (
-                    MeshIOCellType.Hex,
-                    MeshIOCellType.Hex20,
-                    MeshIOCellType.Hex24,
-                    MeshIOCellType.Hex27,
-                )
-            ]
-        )
+        self.hex_count = 0
+        self.tetra_count = 0
+        self.wedge_count = 0
+        self.pyramid_count = 0
 
-        self.tetra_count = sum(
-            [
-                len(self.reader.mesh.get_cells_type(mtype).data)
-                for mtype in (
-                    MeshIOCellType.Tetra,
-                    MeshIOCellType.Tetra10,
-                )
-            ]
-        )
-
-        self.pyramid_count = sum(
-            [
-                len(self.reader.mesh.get_cells_type(mtype).data)
-                for mtype in (
-                    MeshIOCellType.Pyramid,
-                    MeshIOCellType.Pyramid13,
-                    MeshIOCellType.Pyramid14,
-                )
-            ]
-        )
-
-        self.wedge_count = sum(
-            [
-                len(self.reader.mesh.get_cells_type(mtype).data)
-                for mtype in (
-                    MeshIOCellType.Wedge,
-                    # MeshIOCellType.Wedge12,
-                    MeshIOCellType.Wedge15,
-                )
-            ]
-        )
+        for cell_block in self.reader.mesh.cells:
+            if alphabetic_cell_type(cell_block.type) == "hexahedron":
+                self.hex_count += len(cell_block.data)
+            elif alphabetic_cell_type(cell_block.type) == "tetra":
+                self.tetra_count += len(cell_block.data)
+            elif alphabetic_cell_type(cell_block.type) == "pyramid":
+                self.pyramid_count += len(cell_block.data)
+            elif alphabetic_cell_type(cell_block.type) == "wedge":
+                self.wedge_count += len(cell_block.data)
 
     def mesh_bounding_box(self) -> np.ndarray:
         x_min, y_min, z_min = np.min(self.reader.points, axis=0)
@@ -137,8 +104,11 @@ class QualityInspector3D:
         face_center = _mean([p1, p2, p3])
         face_normal = _cross((p2 - p1), (p3 - p1))
         face_area = _norm(face_normal) / 2.0
+        aspect_ratio = max(_norm(p1 - p2), _norm(p1 - p3), _norm(p2 - p3)) / min(
+            _norm(p1 - p2), _norm(p1 - p3), _norm(p2 - p3)
+        )
 
-        return face_center, face_area, face_normal
+        return face_center, face_area, face_normal, aspect_ratio
 
     def calc_face_data_quad(self, face: Tuple[int, ...]) -> Tuple[float, float, float]:
         tri1_data = self.calc_face_data_tri((face[0], face[1], face[2]))
@@ -146,10 +116,27 @@ class QualityInspector3D:
         quad_center = _mean([tri1_data[0], tri2_data[0]])
         quad_area = tri1_data[1] + tri2_data[1]
         quad_normal = _mean([tri1_data[2], tri2_data[2]])
-        return quad_center, quad_area, quad_normal
+
+        p1, p2, p3, p4 = (
+            self.reader.points[face[0]],
+            self.reader.points[face[1]],
+            self.reader.points[face[2]],
+            self.reader.points[face[3]],
+        )
+
+        aspect_ratio = max(
+            _norm(p1 - p2), _norm(p2 - p3), _norm(p3 - p4), _norm(p4 - p1)
+        ) / min(_norm(p1 - p2), _norm(p2 - p3), _norm(p3 - p4), _norm(p4 - p1))
+
+        return quad_center, quad_area, quad_normal, aspect_ratio
 
     def calc_faces_data(self) -> None:
-        face_data_handler = {
+        self.faces_areas = np.zeros(shape=(self.n_faces,))
+        self.faces_centers = np.zeros(shape=(self.n_faces, 3))
+        self.faces_normals = np.zeros(shape=(self.n_faces, 3))
+        self.aspect_ratio = np.zeros(shape=(self.n_faces,))
+
+        face_size_to_calc_func = {
             3: self.calc_face_data_tri,  # triangle
             6: self.calc_face_data_tri,  # triangle6
             7: self.calc_face_data_tri,  # triangle7
@@ -163,7 +150,8 @@ class QualityInspector3D:
                 self.faces_centers[i, :],
                 self.faces_areas[i],
                 self.faces_normals[i, :],
-            ) = face_data_handler[len(face)](face)
+                self.aspect_ratio[i],
+            ) = face_size_to_calc_func[len(face)](face)
 
     def calc_cell_data_tetra(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         points = (
@@ -171,12 +159,6 @@ class QualityInspector3D:
             self.reader.points[cell[1]],
             self.reader.points[cell[2]],
             self.reader.points[cell[3]],
-        )
-
-        aspect_ratio = max(
-            _norm(_sub(points[0], points[1])),
-            _norm(_sub(points[0], points[2])),
-            _norm(_sub(points[0], points[3])),
         )
 
         return _mean(points), tetra_vol(*points)
@@ -235,15 +217,16 @@ class QualityInspector3D:
                 cell_type
             ](cell)
 
-    def calc_nonortho(self) -> float:
-        self.non_ortho = []
+    def calc_faces_nonortho(self) -> float:
+        self.non_ortho = np.zeros(self.faces_normals.shape)
 
-        for face in self.reader.faces_set:
+        for i, face in enumerate(self.reader.faces_set):
             face_id = self.reader.face_to_faceid[face]
             owner_cell_id, neigbor_cell_id = self.reader.faceid_to_cellid[face_id]
 
             if neigbor_cell_id == -1:
                 # Boundary face, nothing to do here
+                self.non_ortho[i] = np.nan
                 continue
 
             owner_center = self.cells_centers[owner_cell_id]
@@ -260,4 +243,4 @@ class QualityInspector3D:
 
             # Angle between ef and sf.
             costheta = _dot(ef, sf) / (_norm(ef) * _norm(sf))
-            self.non_ortho.append(acos(costheta) * (180.0 / pi))
+            self.non_ortho[i] = acos(costheta) * (180.0 / pi)
