@@ -1,7 +1,8 @@
+from typing import Tuple
+
 from neatmesh._reader import MeshReader3D
 from neatmesh._quality import QualityInspector3D
 
-import time
 import numpy as np
 
 from rich import print as rprint
@@ -10,7 +11,7 @@ from rich.table import Table
 from rich import box
 
 
-def report_main_mesh_stats(console: Console, reader: MeshReader3D):
+def report_elements_count(console: Console, reader: MeshReader3D) -> None:
     cell_count = reader.n_cells
     face_count = len(reader.faces_set)
     point_count = reader.n_points
@@ -25,7 +26,7 @@ def report_main_mesh_stats(console: Console, reader: MeshReader3D):
     console.print(stats_table)
 
 
-def report_face_types(console: Console, quad_count, tri_count):
+def report_face_types(console: Console, quad_count, tri_count) -> None:
     face_count_table = Table(title="Faces Count", box=box.SIMPLE)
     face_count_table.add_column("Type", justify="left", style="magenta")
     face_count_table.add_column("Count", justify="left")
@@ -38,7 +39,7 @@ def report_face_types(console: Console, quad_count, tri_count):
     console.print(face_count_table)
 
 
-def report_cell_types(console: Console):
+def report_cell_types(console: Console) -> None:
     cell_count_table = Table(title="", box=box.SIMPLE)
     cell_count_table.add_column("Type", justify="left", style="magenta")
     cell_count_table.add_column("Count", justify="left")
@@ -56,24 +57,55 @@ def report_cell_types(console: Console):
     console.print(cell_count_table)
 
 
+def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
+    arr_max = np.nanmax(array)
+    arr_min = np.nanmin(array)
+    arr_mean = np.nanmean(array)
+    arr_std = np.nanstd(array)
+    
+    return arr_max, arr_min, arr_mean, arr_std
+
+
+def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
+    stats = {
+        "Face Area": q.faces_areas,
+        "Face Aspect Ratio": q.aspect_ratio,
+        "Cell Volume": q.cells_volumes,
+        "Non-Orthogonality": q.non_ortho 
+    }
+    
+    stats_table = Table(title="Mesh Statistics", box=box.SIMPLE)
+    stats_table.add_column("", justify="left", style="magenta")
+    stats_table.add_column("Max.", justify="right")
+    stats_table.add_column("Min.", justify="right")
+    stats_table.add_column("Mean.", justify="right")
+    stats_table.add_column("Std.", justify="right")
+    
+    for stat, array in stats.items():
+        _max, _min, _mean, _std = stats_from_array(array)
+        stats_table.add_row(stat, f"{_max:.6f}", f"{_min:.6f}", f"{_mean:.6f}", f"{_std:.6f}")
+    
+    console.print(stats_table)
+    
+    
+
 if __name__ == "__main__":
     print(
         f"""
-                  _                      _     
- _ __   ___  __ _| |_ _ __ ___   ___ ___| |__  
-| '_ \ / _ \/ _` | __| '_ ` _ \ / _ / __| '_ \ 
-| | | |  __| (_| | |_| | | | | |  __\__ | | | |
-|_| |_|\___|\__,_|\__|_| |_| |_|\___|___|_| |_|
-───────────────────────────────────────────────
-version: 0.1b | license: MIT
+                     __                      __  
+   ____  ___  ____ _/ /_____ ___  ___  _____/ /_    |   
+  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   |   Version: 0.1b
+ / / / /  __/ /_/ / /_/ / / / / /  __(__  ) / / /   |   License: MIT
+/_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/    |   
+                                                 
 """
     )
     console = Console()
 
     print("Reading mesh...")
-    mesh = MeshReader3D("./neatmesh/test_meshes/small_tetra.med")
+    mesh = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
     mesh.process_mesh()
-    report_main_mesh_stats(console, mesh)
+    report_elements_count(console, mesh)
 
     print("Collecting cell types..")
     q = QualityInspector3D(mesh)
@@ -81,30 +113,19 @@ version: 0.1b | license: MIT
 
     report_cell_types(console)
 
-    print("Calculating face centers, normals, areas and aspect ratio...")
+    print("Calculating face centers, normals, areas and aspect ratio...\n")
     q.calc_faces_data()
     report_face_types(console, q.n_quad, q.n_tri)
 
     print("Calculating cell centers and volumes...")
     q.calc_cells_data()
-    rprint(
-        f"Face aspect ratio max. = {np.max(q.aspect_ratio):.2f}"
-        f", min. = {np.min(q.aspect_ratio):.2f}, "
-        f"mean = {np.mean(q.aspect_ratio):.2f}, "
-        f"std = {np.std(q.aspect_ratio):.2f}"
-    )
 
-    print("Checking non-orthogonality...")
+    print("Checking non-orthogonality...\n")
     q.calc_faces_nonortho()
-    rprint(
-        f"non-orthogonality max. = {np.nanmax(q.non_ortho):.3f}"
-        f", min. = {np.nanmin(q.non_ortho):.3f}, "
-        f"mean = {np.nanmean(q.non_ortho):.3f}, "
-        f"std = {np.nanstd(q.non_ortho):.3f}"
-    )
 
-    rprint("Mesh bounding box: ", q.mesh_bounding_box())
-    rprint("Count of duplicate nodes: ", q.duplicate_nodes_count())
+    report_mesh_stats(console, q)
 
-# cell volume: min, max, std, mean
-# face area: min, max, std, mean
+    rprint("Count of duplicate nodes = ", q.duplicate_nodes_count())
+    rprint("Mesh bounding box: ")
+    for point in q.mesh_bounding_box():
+        rprint(point)

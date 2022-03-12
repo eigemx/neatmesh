@@ -1,4 +1,4 @@
-from typing import Tuple, Union, List
+from typing import Tuple, Union
 from math import sqrt, pi, acos
 
 import numpy as np
@@ -23,10 +23,13 @@ class QualityInspector3D:
         for cell_block in self.reader.mesh.cells:
             if alphabetic_cell_type(cell_block.type) == "hexahedron":
                 self.hex_count += len(cell_block.data)
+
             elif alphabetic_cell_type(cell_block.type) == "tetra":
                 self.tetra_count += len(cell_block.data)
+
             elif alphabetic_cell_type(cell_block.type) == "pyramid":
                 self.pyramid_count += len(cell_block.data)
+
             elif alphabetic_cell_type(cell_block.type) == "wedge":
                 self.wedge_count += len(cell_block.data)
 
@@ -58,7 +61,7 @@ class QualityInspector3D:
 
         return face_center, face_area, face_normal, aspect_ratio
 
-    def calc_face_data_quad(self, face: Tuple[int, ...]) -> Tuple:
+    def _calc_face_data_quad(self, face: Tuple[int, ...]) -> Tuple:
         # Divide quad face into two triangles.
         tri1_data = self._calc_face_data_tri((face[0], face[1], face[2]))
         tri2_data = self._calc_face_data_tri((face[0], face[2], face[3]))
@@ -96,9 +99,9 @@ class QualityInspector3D:
             3: self._calc_face_data_tri,  # triangle
             6: self._calc_face_data_tri,  # triangle6
             7: self._calc_face_data_tri,  # triangle7
-            4: self.calc_face_data_quad,  # quad
-            8: self.calc_face_data_quad,  # quad8
-            9: self.calc_face_data_quad,  # quad9
+            4: self._calc_face_data_quad,  # quad
+            8: self._calc_face_data_quad,  # quad8
+            9: self._calc_face_data_quad,  # quad9
         }
 
         for i, face in enumerate(self.reader.faces):
@@ -109,7 +112,7 @@ class QualityInspector3D:
                 self.aspect_ratio[i],
             ) = face_size_to_calc_func[len(face)](face)
 
-    def calc_cell_data_tetra(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
+    def _calc_cell_data_tetra(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
         points = (
             self.reader.points[cell[0]],
             self.reader.points[cell[1]],
@@ -117,9 +120,9 @@ class QualityInspector3D:
             self.reader.points[cell[3]],
         )
 
-        return _mean(points), tetra_vol(*points)
+        return _mean(points), _tetra_vol(*points)
 
-    def calc_cell_data_hex(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
+    def _calc_cell_data_hex(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
         points = (
             self.reader.points[cell[0]],
             self.reader.points[cell[1]],
@@ -134,7 +137,7 @@ class QualityInspector3D:
 
         return _mean(points), volume
 
-    def calc_cell_data_wedge(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
+    def _calc_cell_data_wedge(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
         points = tuple(self.reader.points[i] for i in cell)
 
         # get wedge lower triangle area
@@ -149,7 +152,7 @@ class QualityInspector3D:
         volume = area * _norm(points[3] - points[0])
         return _mean(points), volume
 
-    def calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
+    def _calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         apex = self.reader.points[cell[4]]
 
         # Pyramid base
@@ -167,22 +170,22 @@ class QualityInspector3D:
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
         self.cells_volumes = np.zeros(shape=(self.n_cells,))
 
-        cell_type_data_handler = {
-            MeshIOCellType.Hex: self.calc_cell_data_hex,
-            MeshIOCellType.Hex20: self.calc_cell_data_hex,
-            MeshIOCellType.Hex24: self.calc_cell_data_hex,
-            MeshIOCellType.Hex27: self.calc_cell_data_hex,
-            MeshIOCellType.Tetra: self.calc_cell_data_tetra,
-            MeshIOCellType.Tetra10: self.calc_cell_data_tetra,
-            MeshIOCellType.Wedge: self.calc_cell_data_wedge,
-            # MeshIOCellType.Wedge12: self.calc_cell_data_wedge,    #TODO: fix this
-            MeshIOCellType.Wedge15: self.calc_cell_data_wedge,
-            MeshIOCellType.Pyramid: self.calc_cell_data_pyramid,
-            MeshIOCellType.Pyramid13: self.calc_cell_data_pyramid,
-            MeshIOCellType.Pyramid14: self.calc_cell_data_pyramid,
+        cell_type_data_handler_map = {
+            MeshIOCellType.Hex: self._calc_cell_data_hex,
+            MeshIOCellType.Hex20: self._calc_cell_data_hex,
+            MeshIOCellType.Hex24: self._calc_cell_data_hex,
+            MeshIOCellType.Hex27: self._calc_cell_data_hex,
+            MeshIOCellType.Tetra: self._calc_cell_data_tetra,
+            MeshIOCellType.Tetra10: self._calc_cell_data_tetra,
+            MeshIOCellType.Wedge: self._calc_cell_data_wedge,
+            MeshIOCellType.Wedge12: self._calc_cell_data_wedge,
+            MeshIOCellType.Wedge15: self._calc_cell_data_wedge,
+            MeshIOCellType.Pyramid: self._calc_cell_data_pyramid,
+            MeshIOCellType.Pyramid13: self._calc_cell_data_pyramid,
+            MeshIOCellType.Pyramid14: self._calc_cell_data_pyramid,
         }
         for i, (cell, cell_type) in enumerate(self.reader.cells()):
-            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler[
+            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler_map[
                 cell_type
             ](cell)
 
@@ -206,7 +209,7 @@ class QualityInspector3D:
 
             # Line connecting current and adjacent cells centroids.
             ef = neighbor_center - owner_center
-            
+
             if _dot(ef, sf) < 0:
                 ef = -ef
 
@@ -230,10 +233,12 @@ def _mean(points: Tuple[np.ndarray, ...]):
         out[0] += point[0]
         out[1] += point[1]
         out[2] += point[2]
+
     n = len(points)
     out[0] = out[0] / n
     out[1] = out[1] / n
     out[2] = out[2] / n
+
     return out
 
 
@@ -249,7 +254,7 @@ def _sub(a, b):
     return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 
-def tetra_vol(a, b, c, d):
+def _tetra_vol(a, b, c, d):
     return abs(_det((_sub(a, b), _sub(b, c), _sub(c, d)))) / 6.0
 
 
@@ -259,6 +264,7 @@ def _norm(vec: Union[np.ndarray, Tuple]) -> float:
 
 def _dot(a, b):
     return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2])
+
 
 def _mult(vec, b):
     return (vec[0] * b, vec[1] * b, vec[2] * b)
