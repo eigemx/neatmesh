@@ -4,7 +4,7 @@ from typing import Tuple, Union
 import numpy as np
 from numpy.linalg import norm, det
 
-from ._common import meshio_3d_to_alpha
+from ._common import meshio_type_to_alpha
 from ._reader import MeshIOCellType, MeshReader3D
 
 
@@ -24,7 +24,7 @@ class QualityInspector3D:
         self.pyramid_count = 0
 
         for cell_block in self.reader.cell_blocks:
-            alpha_cell_type = meshio_3d_to_alpha[cell_block.type]
+            alpha_cell_type = meshio_type_to_alpha[cell_block.type]
             if  alpha_cell_type == "hexahedron":
                 self.hex_count += len(cell_block.data)
             elif alpha_cell_type == "tetra":
@@ -37,11 +37,14 @@ class QualityInspector3D:
     def mesh_bounding_box(self) -> Tuple:
         x_min, y_min, z_min = np.min(self.reader.points, axis=0)
         x_max, y_max, z_max = np.max(self.reader.points, axis=0)
-        return ((x_min, y_min, z_min), (x_max, y_max, z_max))
+        return (
+            (x_min, y_min, z_min),
+            (x_max, y_max, z_max),
+        )
 
     def duplicate_nodes_count(self) -> int:
         return (
-            self.reader.points.shape[0] - np.unique(self.reader.points, axis=0).shape[0]
+            self.reader.points.shape[0] - np.unique(self.points, axis=0).shape[0]
         )
 
     def _calc_face_data_tri(self):
@@ -84,18 +87,41 @@ class QualityInspector3D:
                 self.points[quad_faces[i][3]],
             ]
 
-        self.quad_centers = np.mean(quad_faces_tensor, axis=2)
-        self.quad_normals = np.cross(
-            quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 0, :],
-            quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 0, :]
-        )
-        self.quad_normals += np.cross(
-            quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 0, :],
-            quad_faces_tensor[:, 3, :] - quad_faces_tensor[:, 0, :]
-        )
-        self.quad_normals /= 2.
+        # Quads geometrics centers
+        gc = np.mean(quad_faces_tensor, axis=1)
 
-        self.quad_areas = np.linalg.norm(self.quad_normals, axis=1)
+        # Quad sub-triangles
+        edges = (
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 0)
+        )
+
+        sub_triangles_centroids = [None, None, None, None]
+        sub_triangles_normals = [None, None, None, None]
+
+        for i, edge in enumerate(edges):
+            sub_triangles_centroids[i] = np.mean(
+                np.asarray(
+                    [gc, quad_faces_tensor[:, edge[0], :], quad_faces_tensor[:, edge[1], :]]
+                ).reshape(-1, 3, 3), axis=1)
+            sub_triangles_normals[i] = np.cross(
+                gc - quad_faces_tensor[:, edge[0], :],
+                gc - quad_faces_tensor[:, edge[1], :]
+            )
+
+        sub_triangles_centroids = np.asarray(sub_triangles_centroids).reshape(-1, 4, 3)
+        sub_triangles_normals = np.asarray(sub_triangles_normals).reshape(-1, 4, 3)
+        sub_triangles_areas = norm(sub_triangles_normals, axis=2)
+
+        area_weighted_centroids = sub_triangles_areas[:, :, np.newaxis] * sub_triangles_centroids
+        self.quad_centroids = np.sum(area_weighted_centroids, axis=1)
+        self.quad_centroids /= np.sum(sub_triangles_areas, axis=1)[:, np.newaxis]
+
+        self.quad_normals = np.sum(sub_triangles_normals, axis=1)
+
+        self.quad_areas = norm(self.quad_normals, axis=1)
         self.quad_edges_norms = np.array([
             norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
             norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
@@ -104,39 +130,39 @@ class QualityInspector3D:
         self.quad_aspect_ratios = np.max(self.quad_edges_norms, axis=0) / np.min(self.quad_edges_norms, axis=0)
 
     def _calc_cell_data_tetra(self):
-        self.tetra_cells = np.zeros(shape=(self.tetra_count, 4, 3))
+        tetra_cells_tensor = np.zeros(shape=(self.tetra_count, 4, 3))
         for cell_block in self.reader.cell_blocks:
-            if meshio_3d_to_alpha[cell_block.type] == "tetra":
+            if meshio_type_to_alpha[cell_block.type] == "tetra":
                 cells = cell_block.data
-        
-        for i, cell in enumerate(cells):        
-            self.tetra_cells[i] = (
+
+        for i, cell in enumerate(cells):
+            tetra_cells_tensor[i] = (
                 self.points[cell[0]],
                 self.points[cell[1]],
                 self.points[cell[2]],
                 self.points[cell[3]],
             )
-        
+
         self.tetra_centers = np.mean(self.tetra_cells, axis=0)
         self.tetra_vols = np.abs(
-            np.linalg.det(
+            det(
                 np.array((
-                    self.tetra_cells[:,0,:] - self.tetra_cells[:,1], 
-                    self.tetra_cells[:,1,:] - self.tetra_cells[:,2,:], 
-                    self.tetra_cells[:,2,:] - self.tetra_cells[:,3,:],
+                    tetra_cells_tensor[:,0,:] - tetra_cells_tensor[:,1],
+                    tetra_cells_tensor[:,1,:] - tetra_cells_tensor[:,2,:],
+                    tetra_cells_tensor[:,2,:] - tetra_cells_tensor[:,3,:],
                 )).reshape(-1, 3, 3)
                 )
             ) / 6.0
 
     def _calc_cell_data_hex(self):
-        self.hex_cells = np.zeros(shape=(self.hex_count, 8, 3))
-        
+        hex_cells_tensor = np.zeros(shape=(self.hex_count, 8, 3))
+
         for cell_block in self.reader.cell_blocks:
-            if meshio_3d_to_alpha[cell_block.type] == "hexahedron":
+            if meshio_type_to_alpha[cell_block.type] == "hexahedron":
                 cells = cell_block.data
-        
+
         for i, cell in enumerate(cells):
-            self.hex_cells[i] = (
+            hex_cells_tensor[i] = (
                 self.points[cell[0]],
                 self.points[cell[1]],
                 self.points[cell[2]],
@@ -147,39 +173,45 @@ class QualityInspector3D:
                 self.points[cell[7]],
             )
 
-        x = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 1, :], axis=1)
-        y = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 3, :], axis=1)
-        z = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 4, :], axis=1)
-        
-        self.hex_centers = np.mean(self.hex_cells, axis=1)
+        x = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 1, :], axis=1)
+        y = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 3, :], axis=1)
+        z = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 4, :], axis=1)
+
+        self.hex_centers = np.mean(hex_cells_tensor, axis=1)
         self.hex_vols = x * y * z
 
-    def _calc_cell_data_wedge(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
-        points = tuple(self.reader.points[i] for i in cell)
-
-        # get wedge lower triangle area
-        area = self.faces_areas[
-            self.reader.face_to_faceid[
-                frozenset(
-                    (cell[0], cell[1], cell[2])
-                )
-            ]
-        ]
+    def _calc_cell_data_wedge(self):
 
         volume = area * _norm(points[3] - points[0])
         return _mean(points), volume
 
     def _calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
-        apex = self.reader.points[cell[4]]
+        pyr_cells_tensor = np.zeros(shape=(self.hex_count, 5, 3))
 
-        # Pyramid base
-        base_tri1_data = self._calc_face_data_tri((cell[0], cell[1], cell[2]))
-        base_tri2_data = self._calc_face_data_tri((cell[0], cell[2], cell[3]))
-        base_center = _mean((base_tri1_data[0], base_tri2_data[0]))
-        base_area = base_tri1_data[1] + base_tri2_data[1]
+        for cell_block in self.reader.cell_blocks:
+            if meshio_type_to_alpha[cell_block.type] == "pyramid":
+                cells = cell_block.data
 
-        pyramid_centroid = (0.25 * apex) + _mult(base_center, 0.75)
-        pyramid_volume = (1.0 / 3.0) * base_area * _norm(_sub(base_center, apex))
+        for i, cell in enumerate(cells):
+            self.pyramid_cells[i] = (
+                self.points[cell[0]],
+                self.points[cell[1]],
+                self.points[cell[2]],
+                self.points[cell[3]],
+                self.points[cell[4]],
+            )
+
+        # Pyramid base area
+        quad_normals = np.cross(
+            pyr_cells_tensor[:, 1, :] - pyr_cells_tensor[:, 0, :],
+            pyr_cells_tensor[:, 2, :] - pyr_cells_tensor[:, 0, :]
+        )
+        quad_normals += np.cross(
+            pyr_cells_tensor[:, 2, :] - pyr_cells_tensor[:, 0, :],
+            pyr_cells_tensor[:, 3, :] - pyr_cells_tensor[:, 0, :]
+        )
+        quad_normals /= 2.
+        quad_areas = norm(quad_normals, axis=1)
 
         return pyramid_centroid, pyramid_volume
 
