@@ -130,11 +130,11 @@ if __name__ == "__main__":
     for point in q.mesh_bounding_box():
         rprint(point)
 '''
-reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
+reader = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
 q = QualityInspector3D(reader)
 q.calc_cell_types_counts()
 
 print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
-q._calc_face_data_tri()
-q._calc_cell_data_tetra()
-print(np.max(q.tetra_vols), np.mean(q.tetra_vols), np.min(q.tetra_vols))
+q._calc_face_data_quad()
+q._calc_cell_data_hex()
+print(np.max(q.hex_vols), np.mean(q.hex_vols), np.min(q.hex_vols))
