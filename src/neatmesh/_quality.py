@@ -73,22 +73,10 @@ class QualityInspector3D:
         ])
         self.tri_aspect_ratios = np.max(self.tri_edges_norms, axis=0) / np.min(self.tri_edges_norms, axis=0)
 
-    def _calc_face_data_quad(self):
-        quad_faces = self.faces[self.faces[:,-1] != -1]
-        n_faces = quad_faces.shape[0]
-
-        quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
-
-        for i in range(n_faces):
-            quad_faces_tensor[i] = [
-                self.points[quad_faces[i][0]],
-                self.points[quad_faces[i][1]],
-                self.points[quad_faces[i][2]],
-                self.points[quad_faces[i][3]],
-            ]
-
+    @staticmethod
+    def _quad_data_from_tensor(faces_tensor: np.ndarray):
         # Quads geometrics centers
-        gc = np.mean(quad_faces_tensor, axis=1)
+        gc = np.mean(faces_tensor, axis=1)
 
         # Quad sub-triangles
         edges = (
@@ -104,11 +92,11 @@ class QualityInspector3D:
         for i, edge in enumerate(edges):
             sub_triangles_centroids[i] = np.mean(
                 np.asarray(
-                    [gc, quad_faces_tensor[:, edge[0], :], quad_faces_tensor[:, edge[1], :]]
+                    [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]]
                 ).reshape(-1, 3, 3), axis=1)
             sub_triangles_normals[i] = np.cross(
-                gc - quad_faces_tensor[:, edge[0], :],
-                gc - quad_faces_tensor[:, edge[1], :]
+                gc - faces_tensor[:, edge[0], :],
+                gc - faces_tensor[:, edge[1], :]
             )
 
         sub_triangles_centroids = np.asarray(sub_triangles_centroids).reshape(-1, 4, 3)
@@ -116,18 +104,42 @@ class QualityInspector3D:
         sub_triangles_areas = norm(sub_triangles_normals, axis=2)
 
         area_weighted_centroids = sub_triangles_areas[:, :, np.newaxis] * sub_triangles_centroids
-        self.quad_centroids = np.sum(area_weighted_centroids, axis=1)
-        self.quad_centroids /= np.sum(sub_triangles_areas, axis=1)[:, np.newaxis]
+        quad_centroids = np.sum(area_weighted_centroids, axis=1)
+        quad_centroids /= np.sum(sub_triangles_areas, axis=1)[:, np.newaxis]
 
-        self.quad_normals = np.sum(sub_triangles_normals, axis=1)
+        quad_normals = np.sum(sub_triangles_normals, axis=1)
 
-        self.quad_areas = norm(self.quad_normals, axis=1)
-        self.quad_edges_norms = np.array([
-            norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
-            norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
-            norm(quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 3, :], axis=1)
+        quad_areas = norm(quad_normals, axis=1)
+        quad_edges_norms = np.array([
+            norm(faces_tensor[:, 0, :] - faces_tensor[:, 1, :], axis=1),
+            norm(faces_tensor[:, 1, :] - faces_tensor[:, 2, :], axis=1),
+            norm(faces_tensor[:, 2, :] - faces_tensor[:, 3, :], axis=1)
         ])
-        self.quad_aspect_ratios = np.max(self.quad_edges_norms, axis=0) / np.min(self.quad_edges_norms, axis=0)
+        quad_aspect_ratios = np.max(quad_edges_norms, axis=0) / np.min(quad_edges_norms, axis=0)
+        
+        return quad_centroids, quad_normals, quad_areas, quad_aspect_ratios
+    
+    
+    def _calc_face_data_quad(self):
+        quad_faces = self.faces[self.faces[:,-1] != -1]
+        n_faces = quad_faces.shape[0]
+
+        quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
+
+        for i in range(n_faces):
+            quad_faces_tensor[i] = [
+                self.points[quad_faces[i][0]],
+                self.points[quad_faces[i][1]],
+                self.points[quad_faces[i][2]],
+                self.points[quad_faces[i][3]],
+            ]
+        (
+            self.quad_centroids, 
+            self.quad_normals, 
+            self.quad_areas, 
+            self.quad_aspect_ratios
+        ) = self._quad_data_from_tensor(quad_faces_tensor)
+        
 
     def _calc_cell_data_tetra(self):
         tetra_cells_tensor = np.zeros(shape=(self.tetra_count, 4, 3))
