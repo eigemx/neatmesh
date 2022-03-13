@@ -4,8 +4,7 @@ from math import sqrt, pi, acos
 import numpy as np
 
 from ._reader import MeshReader3D, MeshIOCellType
-from ._common import alphabetic_cell_type
-
+from ._common import meshio_3d_to_alpha
 
 class QualityInspector3D:
     def __init__(self, mr: MeshReader3D) -> None:
@@ -21,16 +20,16 @@ class QualityInspector3D:
         self.pyramid_count = 0
 
         for cell_block in self.reader.mesh.cells:
-            if alphabetic_cell_type(cell_block.type) == "hexahedron":
+            if meshio_3d_to_alpha[cell_block.type] == "hexahedron":
                 self.hex_count += len(cell_block.data)
 
-            elif alphabetic_cell_type(cell_block.type) == "tetra":
+            elif meshio_3d_to_alpha[cell_block.type] == "tetra":
                 self.tetra_count += len(cell_block.data)
 
-            elif alphabetic_cell_type(cell_block.type) == "pyramid":
+            elif meshio_3d_to_alpha[cell_block.type] == "pyramid":
                 self.pyramid_count += len(cell_block.data)
 
-            elif alphabetic_cell_type(cell_block.type) == "wedge":
+            elif meshio_3d_to_alpha[cell_block.type] == "wedge":
                 self.wedge_count += len(cell_block.data)
 
     def mesh_bounding_box(self) -> Tuple:

@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-
+'''
 def report_elements_count(console: Console, reader: MeshReader3D) -> None:
     cell_count = reader.n_cells
     face_count = len(reader.faces_set)
@@ -129,3 +129,5 @@ if __name__ == "__main__":
     rprint("Mesh bounding box: ")
     for point in q.mesh_bounding_box():
         rprint(point)
+'''
+reader = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
