@@ -103,40 +103,30 @@ class QualityInspector3D:
         ])
         self.quad_aspect_ratios = np.max(self.quad_edges_norms, axis=0) / np.min(self.quad_edges_norms, axis=0)
 
-    def calc_faces_data(self) -> None:
-        self.n_quad = 0
-        self.n_tri = 0
-        self.faces_areas = np.zeros(shape=(self.n_faces,))
-        self.faces_centers = np.zeros(shape=(self.n_faces, 3))
-        self.faces_normals = np.zeros(shape=(self.n_faces, 3))
-        self.aspect_ratio = np.zeros(shape=(self.n_faces,))
-
-        face_size_to_calc_func = {
-            3: self._calc_face_data_tri,  # triangle
-            6: self._calc_face_data_tri,  # triangle6
-            7: self._calc_face_data_tri,  # triangle7
-            4: self._calc_face_data_quad,  # quad
-            8: self._calc_face_data_quad,  # quad8
-            9: self._calc_face_data_quad,  # quad9
-        }
-
-        for i, face in enumerate(self.reader.faces):
-            (
-                self.faces_centers[i, :],
-                self.faces_areas[i],
-                self.faces_normals[i, :],
-                self.aspect_ratio[i],
-            ) = face_size_to_calc_func[len(face)](face)
-
-    def _calc_cell_data_tetra(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
-        points = (
-            self.reader.points[cell[0]],
-            self.reader.points[cell[1]],
-            self.reader.points[cell[2]],
-            self.reader.points[cell[3]],
-        )
-
-        return _mean(points), _tetra_vol(*points)
+    def _calc_cell_data_tetra(self):
+        self.tetra_cells = np.zeros(shape=(self.tetra_count, 4, 3))
+        for cell_block in self.reader.cell_blocks:
+            if meshio_3d_to_alpha[cell_block.type] == "tetra":
+                cells = cell_block.data
+        
+        for i, cell in enumerate(cells):        
+            self.tetra_cells[i] = (
+                self.reader.points[cell[0]],
+                self.reader.points[cell[1]],
+                self.reader.points[cell[2]],
+                self.reader.points[cell[3]],
+            )
+        
+        self.tetra_centers = np.mean(self.tetra_cells, axis=0)
+        self.tetra_vols = np.abs(
+            np.linalg.det(
+                np.array((
+                    self.tetra_cells[:,0,:] - self.tetra_cells[:,1], 
+                    self.tetra_cells[:,1,:] - self.tetra_cells[:,2,:], 
+                    self.tetra_cells[:,2,:] - self.tetra_cells[:,3,:],
+                )).reshape(-1, 3, 3)
+                )
+            ) / 6.0
 
     def _calc_cell_data_hex(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
         points = (
