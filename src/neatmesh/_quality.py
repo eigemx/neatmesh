@@ -111,10 +111,10 @@ class QualityInspector3D:
         
         for i, cell in enumerate(cells):        
             self.tetra_cells[i] = (
-                self.reader.points[cell[0]],
-                self.reader.points[cell[1]],
-                self.reader.points[cell[2]],
-                self.reader.points[cell[3]],
+                self.points[cell[0]],
+                self.points[cell[1]],
+                self.points[cell[2]],
+                self.points[cell[3]],
             )
         
         self.tetra_centers = np.mean(self.tetra_cells, axis=0)
@@ -128,20 +128,31 @@ class QualityInspector3D:
                 )
             ) / 6.0
 
-    def _calc_cell_data_hex(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
-        points = (
-            self.reader.points[cell[0]],
-            self.reader.points[cell[1]],
-            self.reader.points[cell[2]],
-            self.reader.points[cell[3]],
-            self.reader.points[cell[4]],
-        )
-        x = _norm(points[0] - points[1])
-        y = _norm(points[0] - points[3])
-        z = _norm(points[0] - points[4])
-        volume = x * y * z
+    def _calc_cell_data_hex(self):
+        self.hex_cells = np.zeros(shape=(self.hex_count, 8, 3))
+        
+        for cell_block in self.reader.cell_blocks:
+            if meshio_3d_to_alpha[cell_block.type] == "hexahedron":
+                cells = cell_block.data
+        
+        for i, cell in enumerate(cells):
+            self.hex_cells[i] = (
+                self.points[cell[0]],
+                self.points[cell[1]],
+                self.points[cell[2]],
+                self.points[cell[3]],
+                self.points[cell[4]],
+                self.points[cell[5]],
+                self.points[cell[6]],
+                self.points[cell[7]],
+            )
 
-        return _mean(points), volume
+        x = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 1, :], axis=1)
+        y = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 3, :], axis=1)
+        z = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 4, :], axis=1)
+        
+        self.hex_centers = np.mean(self.hex_cells, axis=1)
+        self.hex_vols = x * y * z
 
     def _calc_cell_data_wedge(self, cell: Tuple[int, ...]) -> Tuple[np.ndarray, float]:
         points = tuple(self.reader.points[i] for i in cell)
