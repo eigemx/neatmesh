@@ -47,7 +47,7 @@ class QualityInspector3D:
     def _calc_face_data_tri(self):
         tri_faces = self.faces[self.faces[:,-1] == -1][:,:-1]
         n_faces = tri_faces.shape[0]
-        
+
         tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
 
         for i in range(n_faces):
@@ -73,7 +73,7 @@ class QualityInspector3D:
     def _calc_face_data_quad(self):
         quad_faces = self.faces[self.faces[:,-1] != -1]
         n_faces = quad_faces.shape[0]
-        
+
         quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
 
         for i in range(n_faces):
@@ -85,11 +85,17 @@ class QualityInspector3D:
             ]
 
         self.quad_centers = np.mean(quad_faces_tensor, axis=2)
-        '''self.tri_normals = np.cross(
-            tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
-            tri_faces_tensor[:, 2, :] - tri_faces_tensor[:, 0, :]
+        self.quad_normals = np.cross(
+            quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 0, :],
+            quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 0, :]
         )
-        self.tri_areas = np.linalg.norm(self.tri_normals, axis=1)'''
+        self.quad_normals += np.cross(
+            quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 0, :],
+            quad_faces_tensor[:, 3, :] - quad_faces_tensor[:, 0, :]
+        )
+        self.quad_normals /= 2.
+
+        self.quad_areas = np.linalg.norm(self.quad_normals, axis=1)
         self.quad_edges_norms = np.array([
             np.linalg.norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
             np.linalg.norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
