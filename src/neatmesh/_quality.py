@@ -9,7 +9,9 @@ from ._common import meshio_3d_to_alpha
 class QualityInspector3D:
     def __init__(self, mr: MeshReader3D) -> None:
         self.reader = mr
+        self.points = self.reader.points
         self.n_points = mr.n_points
+        self.faces = np.asarray(self.reader.faces)
         self.n_faces = len(mr.faces)
         self.n_cells = mr.n_cells
 
@@ -19,7 +21,7 @@ class QualityInspector3D:
         self.wedge_count = 0
         self.pyramid_count = 0
 
-        for cell_block in self.reader.mesh.cells:
+        for cell_block in self.reader.cell_blocks:
             if meshio_3d_to_alpha[cell_block.type] == "hexahedron":
                 self.hex_count += len(cell_block.data)
 
@@ -42,49 +44,58 @@ class QualityInspector3D:
             self.reader.points.shape[0] - np.unique(self.reader.points, axis=0).shape[0]
         )
 
-    def _calc_face_data_tri(self, face: Tuple[int, ...]) -> Tuple:
-        # ugly but faster than a list comprehension
-        p1, p2, p3 = (
-            self.reader.points[face[0]],
-            self.reader.points[face[1]],
-            self.reader.points[face[2]],
+    def _calc_face_data_tri(self):
+        tri_faces = self.faces[self.faces[:,-1] == -1][:,:-1]
+        n_faces = tri_faces.shape[0]
+        
+        tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
+
+        for i in range(n_faces):
+            tri_faces_tensor[i] = [
+                self.points[tri_faces[i][0]],
+                self.points[tri_faces[i][1]],
+                self.points[tri_faces[i][2]],
+            ]
+
+        self.tri_centers = np.mean(tri_faces_tensor, axis=2)
+        self.tri_normals = np.cross(
+            tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
+            tri_faces_tensor[:, 2, :] - tri_faces_tensor[:, 0, :]
         )
+        self.tri_areas = np.linalg.norm(self.tri_normals, axis=1)
+        self.tri_edges_norms = np.array([
+            np.linalg.norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 1, :], axis=1),
+            np.linalg.norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 2, :], axis=1),
+            np.linalg.norm(tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 2, :], axis=1)
+        ])
+        self.tri_aspect_ratios = np.max(self.tri_edges_norms, axis=0) / np.min(self.tri_edges_norms, axis=0)
 
-        face_center = _mean((p1, p2, p3))
-        face_normal = _cross((p2 - p1), (p3 - p1))
-        face_area = _norm(face_normal) / 2.0
-        edges_norm = _norm(p1 - p2), _norm(p1 - p3), _norm(p2 - p3)
-        aspect_ratio = max(edges_norm) / min(edges_norm)
+    def _calc_face_data_quad(self):
+        quad_faces = self.faces[self.faces[:,-1] != -1]
+        n_faces = quad_faces.shape[0]
+        
+        quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
 
-        self.n_tri += 1
+        for i in range(n_faces):
+            quad_faces_tensor[i] = [
+                self.points[quad_faces[i][0]],
+                self.points[quad_faces[i][1]],
+                self.points[quad_faces[i][2]],
+                self.points[quad_faces[i][3]],
+            ]
 
-        return face_center, face_area, face_normal, aspect_ratio
-
-    def _calc_face_data_quad(self, face: Tuple[int, ...]) -> Tuple:
-        # Divide quad face into two triangles.
-        tri1_data = self._calc_face_data_tri((face[0], face[1], face[2]))
-        tri2_data = self._calc_face_data_tri((face[0], face[2], face[3]))
-
-        # Calculate quad data from two triangle results
-        quad_center = _mean((tri1_data[0], tri2_data[0]))
-        quad_area = tri1_data[1] + tri2_data[1]
-        quad_normal = _mean((tri1_data[2], tri2_data[2]))
-
-        # Calculate face aspect ratio
-        p1, p2, p3, p4 = (
-            self.reader.points[face[0]],
-            self.reader.points[face[1]],
-            self.reader.points[face[2]],
-            self.reader.points[face[3]],
+        self.quad_centers = np.mean(quad_faces_tensor, axis=2)
+        '''self.tri_normals = np.cross(
+            tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
+            tri_faces_tensor[:, 2, :] - tri_faces_tensor[:, 0, :]
         )
-
-        edges_norm = _norm(p1 - p2), _norm(p2 - p3), _norm(p3 - p4), _norm(p4 - p1)
-        aspect_ratio = max(edges_norm) / min(edges_norm)
-
-        self.n_quad += 1
-        self.n_tri -= 2
-
-        return quad_center, quad_area, quad_normal, aspect_ratio
+        self.tri_areas = np.linalg.norm(self.tri_normals, axis=1)'''
+        self.quad_edges_norms = np.array([
+            np.linalg.norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
+            np.linalg.norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
+            np.linalg.norm(quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 3, :], axis=1)
+        ])
+        self.quad_aspect_ratios = np.max(self.quad_edges_norms, axis=0) / np.min(self.quad_edges_norms, axis=0)
 
     def calc_faces_data(self) -> None:
         self.n_quad = 0
