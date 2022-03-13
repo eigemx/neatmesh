@@ -1,59 +1,35 @@
-from typing import Callable, FrozenSet, List, Set, Tuple, Dict, Iterator
-from attr import frozen
+from typing import Dict, FrozenSet, List, Set, Tuple
 
 from meshio import ReadError, read
 
-from ._exceptions import InvalidMeshException, NonSupportedElement
 from ._common import *
+from ._exceptions import InvalidMeshException, NonSupportedElement
 
 
+# TODO: check if mesh exists before calling MeshReader3D
 class MeshReader3D:
     def __init__(self, mesh_file_path: str) -> None:
-        # TODO: check if file exists outside of here,
-        # raise meshio.ReadError only in case meshio cannot read or
-        # support given mesh.
         try:
             self.mesh = read(mesh_file_path)
         except ReadError as exception:
-            error = "Could not open mesh file.\n"
+            error = "Could not read mesh file (meshio error).\n"
             error += f"{exception}"
             raise InvalidMeshException(error) from exception
 
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
-        self.n_cells = sum(
-            [
-                len(cell_block.data)
-                for cell_block in self.mesh.cells
-                if cell_block.type in meshio_3d
-            ]
-        )
-
-        # list of points labels of processed faces (all types)
-        self.faces: List[Tuple[int, ...]] = []
-        self.faces_set: Set[FrozenSet] = set()
-
-        # map face points to face index in `faces`
-        self.face_to_faceid: Dict[FrozenSet, int] = {}
-
-        # maps face id to a list of cells id. A face is shared by max. 2 cells.
-        self.faceid_to_cellid: Dict[int, List[int]] = {}
-
-        # keep track of the face id to be processed.
-        self.current_faceid: int = 0
-
-        # keep track of the cell id to be processed.
-        self.current_cellid: int = 0
-
-        self._check_unsupported()
+        self._check_mesh()
         self.process_mesh()
 
-    def _check_unsupported(self):
+    def _check_mesh(self):
         self.cell_blocks = []
+        self.n_cells = 0
+
         for cell_block in self.mesh.cells:
             if cell_block.type in meshio_3d and cell_block.data.size > 0:
                 self.cell_blocks.append(cell_block)
+                self.n_cells += len(cell_block.data)
 
             elif cell_block.type not in meshio_2d \
                 and cell_block.type not in meshio_1d:
@@ -62,11 +38,30 @@ class MeshReader3D:
                 )
 
     def process_mesh(self) -> None:
+        # list of points labels of processed faces (all types)
+        self.faces: List[Tuple[int, ...]] = []
+
+        self.faces_set: Set[FrozenSet] = set()
+
+        # map face points to face index in `faces`
+        self.face_to_faceid: Dict[FrozenSet, int] = {}
+
+        # maps face id to a list of cells id. A face is shared by max. 2 cells.
+        self.faceid_to_cellid: Dict[int, List[int]] = {}
+        
+        # keep track of the face id to be processed.
+        self.current_faceid: int = 0
+
+        # keep track of the cell id to be processed.
+        self.current_cellid: int = 0
+        
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
             for cell in cells:
-                faces = cell_type_to_faces_func[meshio_3d_to_alpha[cell_block.type]](cell)
+                cell_type = meshio_3d_to_alpha[cell_block.type]
+                faces_func = cell_type_to_faces_func[cell_type]
+                faces = faces_func(cell)
                 for face in faces:
                     fface = frozenset(face)
                     # have we met `face` before?
@@ -80,13 +75,7 @@ class MeshReader3D:
                         self.current_faceid += 1
                     else:
                     # link the face to the cell who owns it
-                        self.faceid_to_cellid[self.face_to_faceid[fface]][1] = self.current_cellid
+                        face_id = self.face_to_faceid[fface]
+                        self.faceid_to_cellid[face_id][1] = self.current_cellid
 
                 self.current_cellid += 1
-
-    def cells(self) -> Iterator[Tuple[Tuple[int, ...], str]]:
-        for cell_block in self.mesh.cells:
-            if cell_block.type not in cell_type_to_faces_func:
-                continue
-            for cell in cell_block.data:
-                yield cell, cell_block.type
