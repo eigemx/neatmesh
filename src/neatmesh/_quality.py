@@ -2,6 +2,7 @@ from math import acos, pi, sqrt
 from typing import Tuple, Union
 
 import numpy as np
+from numpy.linalg import norm, det
 
 from ._common import meshio_3d_to_alpha
 from ._reader import MeshIOCellType, MeshReader3D
@@ -63,9 +64,9 @@ class QualityInspector3D:
         )
         self.tri_areas = np.linalg.norm(self.tri_normals, axis=1)
         self.tri_edges_norms = np.array([
-            np.linalg.norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 1, :], axis=1),
-            np.linalg.norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 2, :], axis=1),
-            np.linalg.norm(tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 2, :], axis=1)
+            norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 1, :], axis=1),
+            norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 2, :], axis=1),
+            norm(tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 2, :], axis=1)
         ])
         self.tri_aspect_ratios = np.max(self.tri_edges_norms, axis=0) / np.min(self.tri_edges_norms, axis=0)
 
@@ -96,9 +97,9 @@ class QualityInspector3D:
 
         self.quad_areas = np.linalg.norm(self.quad_normals, axis=1)
         self.quad_edges_norms = np.array([
-            np.linalg.norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
-            np.linalg.norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
-            np.linalg.norm(quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 3, :], axis=1)
+            norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
+            norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
+            norm(quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 3, :], axis=1)
         ])
         self.quad_aspect_ratios = np.max(self.quad_edges_norms, axis=0) / np.min(self.quad_edges_norms, axis=0)
 
@@ -146,9 +147,9 @@ class QualityInspector3D:
                 self.points[cell[7]],
             )
 
-        x = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 1, :], axis=1)
-        y = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 3, :], axis=1)
-        z = np.linalg.norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 4, :], axis=1)
+        x = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 1, :], axis=1)
+        y = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 3, :], axis=1)
+        z = norm(self.hex_cells[:, 0, :] - self.hex_cells[:, 4, :], axis=1)
         
         self.hex_centers = np.mean(self.hex_cells, axis=1)
         self.hex_vols = x * y * z
