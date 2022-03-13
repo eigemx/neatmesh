@@ -131,3 +131,4 @@ if __name__ == "__main__":
         rprint(point)
 '''
 reader = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
+print(len(reader.points), len(reader.faces), reader.n_cells)

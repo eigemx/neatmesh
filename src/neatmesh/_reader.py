@@ -7,7 +7,6 @@ from ._exceptions import InvalidMeshException, NonSupportedElement
 from ._common import *
 
 
-# TODO: Check for unsupported cell types
 class MeshReader3D:
     def __init__(self, mesh_file_path: str) -> None:
         # TODO: check if file exists outside of here,
@@ -69,39 +68,21 @@ class MeshReader3D:
             for cell in cells:
                 faces = cell_type_to_faces_func[meshio_3d_to_alpha[cell_block.type]](cell)
                 for face in faces:
+                    fface = frozenset(face)
                     # have we met `face` before?
-                    if not self._face_exists(face):
-                        self._add_face(face, self.current_cellid)
+                    if not fface in self.faces_set:
+                        self.face_to_faceid[fface] = self.current_faceid
+                        self.faces_set.add(fface)
+
+                        # add face points labels to `faces`
+                        self.faces.append(face)
+                        self.faceid_to_cellid[self.current_faceid] = [self.current_cellid, -1]
+                        self.current_faceid += 1
                     else:
                     # link the face to the cell who owns it
-                        self.faceid_to_cellid[self.face_to_faceid[frozenset(face)]][1] = self.current_cellid
+                        self.faceid_to_cellid[self.face_to_faceid[fface]][1] = self.current_cellid
 
                 self.current_cellid += 1
-
-    def _face_exists(self, face_labels: Tuple[int, ...]) -> bool:
-        """Checks if a list of face labels (aka a face) exists or not
-        Args:
-            face_labels (list): list of face points labels
-        Returns:
-            bool: True if face exists, False otherwise
-        """
-        return frozenset(face_labels) in self.faces_set
-
-    def _add_face(self, face: Tuple[int, ...], cellid):
-        """Adds a face to list of processed faces and assign an id for it.
-        Args:
-            face (List): list of face points labels
-        Returns:
-            int: newly added face id
-        """
-        sface = frozenset(face)
-        self.face_to_faceid[sface] = self.current_faceid
-        self.faces_set.add(sface)
-
-        # add face points labels to `faces`
-        self.faces.append(face)
-        self.faceid_to_cellid[self.current_faceid] = [cellid, -1]
-        self.current_faceid += 1
 
     def cells(self) -> Iterator[Tuple[Tuple[int, ...], str]]:
         for cell_block in self.mesh.cells:
