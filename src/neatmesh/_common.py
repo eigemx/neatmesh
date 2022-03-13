@@ -100,7 +100,16 @@ meshio_3d: Final = {
     "pyramid14",
 }
 
-meshio_3d_to_alpha: Final = {
+meshio_type_to_alpha: Final = {
+    "vertex": "vertex",
+    "line": "line",
+    "line": "line3",
+    "triangle": "triangle",
+    "triangle6": "triangle",
+    "triangle7": "triangle",
+    "quad": "quad",
+    "quad8": "quad",
+    "quad9": "quad",
     "tetra": "tetra",
     "tetra10": "tetra",
     "hexahedron": "hexahedron",
@@ -137,7 +146,7 @@ def is_3d(mesh: Mesh) -> bool:
     """Check if a meshio mesh is 3-dimensional"""
     for cell_block in mesh.cells:
         # first 3D element type is enough.
-        if meshio_3d_to_alpha[cell_block.type] in meshio_3d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_3d:
             return True
     return False
 
@@ -148,6 +157,6 @@ def is_2d(mesh: Mesh) -> bool:
         return False
 
     for cell_block in mesh.cells:
-        if meshio_3d_to_alpha[cell_block.type] in meshio_2d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_2d:
             return True
     return False

@@ -27,15 +27,22 @@ class MeshReader3D:
         self.n_cells = 0
 
         for cell_block in self.mesh.cells:
-            if cell_block.type in meshio_3d and cell_block.data.size > 0:
+            ctype = cell_block.type
+            if ctype in meshio_type_to_alpha:
+                ctype = meshio_type_to_alpha[ctype]
+
+            if ctype in meshio_3d and cell_block.data.size > 0:
                 self.cell_blocks.append(cell_block)
                 self.n_cells += len(cell_block.data)
 
-            elif cell_block.type not in meshio_2d \
+            elif ctype not in meshio_2d \
                 and cell_block.type not in meshio_1d:
                 raise NonSupportedElement(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
+        
+        if not self.cell_blocks:
+            raise InvalidMeshException("No 3D elements were found in mesh")
 
     def process_mesh(self) -> None:
         # list of points labels of processed faces (all types)
@@ -59,7 +66,7 @@ class MeshReader3D:
             cells = cell_block.data
 
             for cell in cells:
-                cell_type = meshio_3d_to_alpha[cell_block.type]
+                cell_type = meshio_type_to_alpha[cell_block.type]
                 faces_func = cell_type_to_faces_func[cell_type]
                 faces = faces_func(cell)
                 for face in faces:
