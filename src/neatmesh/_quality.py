@@ -94,12 +94,18 @@ class QualityInspector3D:
                 np.asarray(
                     [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]]
                 ).reshape(-1, 3, 3), axis=1)
+            print(sub_triangles_centroids[i])
+            quit()
+
             sub_triangles_normals[i] = np.cross(
-                faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :],
-                gc - faces_tensor[:, edge[0], :]
+                gc - faces_tensor[:, edge[0], :],
+                faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :]
             )
 
+        print(np.asarray(sub_triangles_centroids))
+        quit()
         sub_triangles_centroids = np.asarray(sub_triangles_centroids).reshape(-1, 4, 3)
+        
         sub_triangles_normals = np.asarray(sub_triangles_normals).reshape(-1, 4, 3)
         sub_triangles_areas = norm(sub_triangles_normals, axis=2) / 2.
 
