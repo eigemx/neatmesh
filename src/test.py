@@ -143,5 +143,6 @@ print('Area: ',
       np.max(q.tri_areas), np.mean(q.tri_areas), np.min(q.tri_areas))
 print('Normals: ',
       q.tri_normals)'''
+q._calc_cell_data_tetra()
 q._calc_cell_data_pyramid()
 print(np.max(q.pyramids_vol), np.min(q.pyramids_vol), np.mean(q.pyramids_vol))
