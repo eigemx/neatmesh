@@ -130,17 +130,17 @@ if __name__ == "__main__":
     for point in q.mesh_bounding_box():
         rprint(point)
 '''
-reader = MeshReader3D("./neatmesh/test_meshes/fine_hex_mesh.med")
+reader = MeshReader3D("./neatmesh/test_meshes/small_tetra.med")
 q = QualityInspector3D(reader)
 q.calc_cell_types_counts()
 
 print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
-q._calc_face_data_quad()
-q._calc_cell_data_hex()
+q._calc_face_data_tri()
+q._calc_cell_data_tetra()
 print('Aspect ratio: ', 
-      np.max(q.quad_aspect_ratios), np.mean(q.quad_aspect_ratios), np.min(q.quad_aspect_ratios))
+      np.max(q.tri_aspect_ratios), np.mean(q.tri_aspect_ratios), np.min(q.tri_aspect_ratios))
 print('Area: ', 
-      np.max(q.quad_areas), np.mean(q.quad_areas), np.min(q.quad_areas))
+      np.max(q.tri_areas), np.mean(q.tri_areas), np.min(q.tri_areas))
 print('Normals: ',
-      q.quad_normals)
+      q.tri_normals)
 

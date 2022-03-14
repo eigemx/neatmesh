@@ -1,5 +1,4 @@
-from math import acos, pi, sqrt
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 from numpy.linalg import norm, det
@@ -47,31 +46,22 @@ class QualityInspector3D:
             self.reader.points.shape[0] - np.unique(self.points, axis=0).shape[0]
         )
 
-    def _calc_face_data_tri(self):
-        tri_faces = self.faces[self.faces[:,-1] == -1][:,:-1]
-        n_faces = tri_faces.shape[0]
-
-        tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
-
-        for i in range(n_faces):
-            tri_faces_tensor[i] = [
-                self.points[tri_faces[i][0]],
-                self.points[tri_faces[i][1]],
-                self.points[tri_faces[i][2]],
-            ]
-
-        self.tri_centers = np.mean(tri_faces_tensor, axis=2)
-        self.tri_normals = np.cross(
+    @staticmethod
+    def _tri_data_from_tensor(tri_faces_tensor: np.ndarray):
+        tri_centers = np.mean(tri_faces_tensor, axis=2)
+        tri_normals = np.cross(
             tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
             tri_faces_tensor[:, 2, :] - tri_faces_tensor[:, 0, :]
         )
-        self.tri_areas = np.linalg.norm(self.tri_normals, axis=1)
-        self.tri_edges_norms = np.array([
+        tri_areas = norm(tri_normals, axis=1)
+        tri_edges_norms = np.array([
             norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 1, :], axis=1),
             norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 2, :], axis=1),
             norm(tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 2, :], axis=1)
         ])
-        self.tri_aspect_ratios = np.max(self.tri_edges_norms, axis=0) / np.min(self.tri_edges_norms, axis=0)
+        tri_aspect_ratios = np.max(tri_edges_norms, axis=0) / np.min(tri_edges_norms, axis=0)
+        
+        return tri_centers, tri_normals, tri_areas, tri_aspect_ratios
 
     @staticmethod
     def _quad_data_from_tensor(faces_tensor: np.ndarray):
@@ -120,6 +110,25 @@ class QualityInspector3D:
 
         return quad_centroids, quad_normals, quad_areas, quad_aspect_ratios
 
+    def _calc_face_data_tri(self):
+        tri_faces = self.faces[self.faces[:,-1] == -1][:,:-1]
+        n_faces = tri_faces.shape[0]
+
+        tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
+
+        for i in range(n_faces):
+            tri_faces_tensor[i] = [
+                self.points[tri_faces[i][0]],
+                self.points[tri_faces[i][1]],
+                self.points[tri_faces[i][2]],
+            ]
+            
+        (
+            self.tri_centers, 
+            self.tri_normals, 
+            self.tri_areas, 
+            self.tri_aspect_ratios
+        ) = self._tri_data_from_tensor(tri_faces_tensor)
 
     def _calc_face_data_quad(self):
         # Danger: this will mix up between hex quads and wedge/pyramid quads
@@ -157,7 +166,7 @@ class QualityInspector3D:
                 self.points[cell[3]],
             )
 
-        self.tetra_centers = np.mean(self.tetra_cells, axis=0)
+        self.tetra_centers = np.mean(tetra_cells_tensor, axis=0)
         self.tetra_vols = np.abs(
             det(
                 np.array((
@@ -195,9 +204,7 @@ class QualityInspector3D:
         self.hex_vols = x * y * z
 
     def _calc_cell_data_wedge(self):
-
-        volume = area * _norm(points[3] - points[0])
-        return _mean(points), volume
+        raise NotImplemented("wedge")
 
     def _calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
         pyr_cells_tensor = np.zeros(shape=(self.hex_count, 5, 3))
@@ -279,55 +286,3 @@ class QualityInspector3D:
             # Angle between ef and sf.
             costheta = _dot(ef, sf) / (_norm(ef) * _norm(sf))
             self.non_ortho[i] = acos(costheta) * (180.0 / pi)
-
-
-# We implement basic vector operations, because for small size of np.arrays
-# numpy equivalent of such functions are substantially slower.
-def _cross(left: np.ndarray, right: np.ndarray) -> Tuple[float, float, float]:
-    x = (left[1] * right[2]) - (left[2] * right[1])
-    y = (left[2] * right[0]) - (left[0] * right[2])
-    z = (left[0] * right[1]) - (left[1] * right[0])
-    return (x, y, z)
-
-
-def _mean(points: Tuple[np.ndarray, ...]):
-    out = [0.0, 0.0, 0.0]
-    for point in points:
-        out[0] += point[0]
-        out[1] += point[1]
-        out[2] += point[2]
-
-    n = len(points)
-    out[0] = out[0] / n
-    out[1] = out[1] / n
-    out[2] = out[2] / n
-
-    return out
-
-
-def _det(m) -> float:
-    return (
-        m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
-        - m[1][0] * (m[0][1] * m[2][2] - m[0][2] * m[2][1])
-        + m[2][0] * (m[0][1] * m[1][2] - m[0][2] * m[1][1])
-    )
-
-
-def _sub(a, b):
-    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-
-def _tetra_vol(a, b, c, d):
-    return abs(_det((_sub(a, b), _sub(b, c), _sub(c, d)))) / 6.0
-
-
-def _norm(vec: Union[np.ndarray, Tuple]) -> float:
-    return sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
-
-
-def _dot(a, b):
-    return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2])
-
-
-def _mult(vec, b):
-    return (vec[0] * b, vec[1] * b, vec[2] * b)
