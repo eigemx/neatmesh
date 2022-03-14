@@ -95,7 +95,7 @@ def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):
     return tetra_centers, tetra_vols
 
 
-def pyramid_data_from_tensor(self, pyr_cells_tensor: np.ndarray):
+def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
     # Pyramid base area and centroid
     quad_base_tensor = pyr_cells_tensor[:, 0:-1, :]
     quad_centroids, _, quad_areas, _ = quad_data_from_tensor(quad_base_tensor)
@@ -107,6 +107,15 @@ def pyramid_data_from_tensor(self, pyr_cells_tensor: np.ndarray):
     pyramids_centroids = (0.75 * quad_centroids) + (0.25 * pyramids_apex)
     
     return pyramids_centroids, pyramids_vol
+
+
+def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
+    gc = np.mean(wedge_cells_tensor, axis=1)
+    upper_tri_tensor = wedge_cells_tensor[:, [3, 4, 5], :]
+    lower_tri_tensor = wedge_cells_tensor[:, [0, 1, 2], :]
+    quad1_tensor = wedge_cells_tensor[:, [0, 1, 4, 3], :]
+    quad2_tensor = wedge_cells_tensor[:, [1, 2, 5, 4], :]
+    quad3_tensor = wedge_cells_tensor[:, [0, 3, 5, 2], :]
 
 
 def hex_data_from_tensor(hex_cells_tensor: np.ndarray):

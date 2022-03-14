@@ -2,15 +2,18 @@ import numpy as np
 
 from ._common import meshio_type_to_alpha
 from ._reader import MeshIOCellType, MeshReader3D
-
+from ._geometry import *
 
 class QualityInspector3D:
     def __init__(self, mr: MeshReader3D) -> None:
         self.reader = mr
+
         self.points = self.reader.points
         self.n_points = mr.n_points
+
         self.faces = np.asarray(self.reader.faces)
         self.n_faces = len(mr.faces)
+
         self.n_cells = mr.n_cells
 
     def calc_cell_types_counts(self) -> None:
@@ -42,11 +45,11 @@ class QualityInspector3D:
                 self.points[tri_faces[i][1]],
                 self.points[tri_faces[i][2]],
             ]
-            
+
         (
-            self.tri_centers, 
-            self.tri_normals, 
-            self.tri_areas, 
+            self.tri_centers,
+            self.tri_normals,
+            self.tri_areas,
             self.tri_aspect_ratios
         ) = tri_data_from_tensor(tri_faces_tensor)
 
@@ -86,7 +89,7 @@ class QualityInspector3D:
             )
 
         self.tetra_centers, self.tetra_vols = tetra_data_from_tensor(tetra_cells_tensor)
-        
+
     def _calc_cell_data_hex(self):
         hex_cells_tensor = np.zeros(shape=(self.hex_count, 8, 3))
 
@@ -142,9 +145,9 @@ class QualityInspector3D:
             )
 
         (
-            self.pyramids_centroids, 
+            self.pyramids_centroids,
             self.pyramids_vol
-        ) = self._pyramid_data_from_tensor(pyr_cells_tensor)
+        ) = pyramid_data_from_tensor(pyr_cells_tensor)
 
     def calc_cells_data(self) -> None:
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
