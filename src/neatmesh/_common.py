@@ -10,12 +10,12 @@ def hex_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         List[List]: list of list of faces points labels
     """
     return (
-        (cell[0], cell[3], cell[2], cell[1]),
-        (cell[4], cell[5], cell[6], cell[7]),
-        (cell[0], cell[1], cell[5], cell[4]),
-        (cell[2], cell[3], cell[7], cell[6]),
-        (cell[0], cell[4], cell[7], cell[3]),
         (cell[1], cell[2], cell[6], cell[5]),
+        (cell[0], cell[4], cell[7], cell[3]),
+        (cell[3], cell[7], cell[6], cell[2]),
+        (cell[0], cell[1], cell[5], cell[4]),
+        (cell[4], cell[5], cell[6], cell[7]),
+        (cell[0], cell[3], cell[2], cell[1]),
     )
 
 
