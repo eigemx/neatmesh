@@ -91,24 +91,19 @@ class QualityInspector3D:
 
         for i, edge in enumerate(edges):
             sub_triangles_centroids[i] = np.mean(
-                np.asarray(
-                    [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]]
-                ).reshape(-1, 3, 3), axis=1)
-            print(sub_triangles_centroids[i])
-            quit()
+                    [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]],
+                    axis=0
+                )
 
             sub_triangles_normals[i] = np.cross(
                 gc - faces_tensor[:, edge[0], :],
-                faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :]
+                faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :], axis=1
             )
 
-        print(np.asarray(sub_triangles_centroids))
-        quit()
-        sub_triangles_centroids = np.asarray(sub_triangles_centroids).reshape(-1, 4, 3)
-        
-        sub_triangles_normals = np.asarray(sub_triangles_normals).reshape(-1, 4, 3)
-        sub_triangles_areas = norm(sub_triangles_normals, axis=2) / 2.
+        sub_triangles_centroids = np.swapaxes(sub_triangles_centroids, 0, 1)
+        sub_triangles_normals = np.swapaxes(sub_triangles_normals, 0, 1)
 
+        sub_triangles_areas = norm(sub_triangles_normals, axis=2) / 2.
         area_weighted_centroids = sub_triangles_areas[:, :, np.newaxis] * sub_triangles_centroids
         quad_centroids = np.sum(area_weighted_centroids, axis=1)
         quad_areas = np.sum(sub_triangles_areas, axis=1)[:, np.newaxis]
@@ -122,10 +117,10 @@ class QualityInspector3D:
             norm(faces_tensor[:, 2, :] - faces_tensor[:, 3, :], axis=1)
         ])
         quad_aspect_ratios = np.max(quad_edges_norms, axis=0) / np.min(quad_edges_norms, axis=0)
-        
+
         return quad_centroids, quad_normals, quad_areas, quad_aspect_ratios
-    
-    
+
+
     def _calc_face_data_quad(self):
         # Danger: this will mix up between hex quads and wedge/pyramid quads
         quad_faces = self.faces[self.faces[:,-1] != -1]
@@ -141,12 +136,12 @@ class QualityInspector3D:
                 self.points[quad_faces[i][3]],
             ]
         (
-            self.quad_centroids, 
-            self.quad_normals, 
-            self.quad_areas, 
+            self.quad_centroids,
+            self.quad_normals,
+            self.quad_areas,
             self.quad_aspect_ratios
         ) = self._quad_data_from_tensor(quad_faces_tensor)
-        
+
 
     def _calc_cell_data_tetra(self):
         tetra_cells_tensor = np.zeros(shape=(self.tetra_count, 4, 3))
