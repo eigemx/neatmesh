@@ -183,6 +183,7 @@ class QualityInspector3D:
         for cell_block in self.reader.cell_blocks:
             if meshio_type_to_alpha[cell_block.type] == "hexahedron":
                 cells = cell_block.data
+                break
 
         for i, cell in enumerate(cells):
             hex_cells_tensor[i] = (
@@ -206,15 +207,15 @@ class QualityInspector3D:
     def _calc_cell_data_wedge(self):
         raise NotImplemented("wedge")
 
-    def _calc_cell_data_pyramid(self, cell: Tuple[int, ...]) -> Tuple[float, float]:
-        pyr_cells_tensor = np.zeros(shape=(self.hex_count, 5, 3))
+    def _calc_cell_data_pyramid(self):
+        pyr_cells_tensor = np.zeros(shape=(self.pyramid_count, 5, 3))
 
         for cell_block in self.reader.cell_blocks:
             if meshio_type_to_alpha[cell_block.type] == "pyramid":
                 cells = cell_block.data
 
         for i, cell in enumerate(cells):
-            self.pyramid_cells[i] = (
+            pyr_cells_tensor[i] = (
                 self.points[cell[0]],
                 self.points[cell[1]],
                 self.points[cell[2]],
@@ -222,19 +223,15 @@ class QualityInspector3D:
                 self.points[cell[4]],
             )
 
-        # Pyramid base area
-        quad_normals = np.cross(
-            pyr_cells_tensor[:, 1, :] - pyr_cells_tensor[:, 0, :],
-            pyr_cells_tensor[:, 2, :] - pyr_cells_tensor[:, 0, :]
-        )
-        quad_normals += np.cross(
-            pyr_cells_tensor[:, 2, :] - pyr_cells_tensor[:, 0, :],
-            pyr_cells_tensor[:, 3, :] - pyr_cells_tensor[:, 0, :]
-        )
-        quad_normals /= 2.
-        quad_areas = norm(quad_normals, axis=1)
-
-        return pyramid_centroid, pyramid_volume
+        # Pyramid base area and centroid
+        quad_base_tensor = pyr_cells_tensor[:, 0:-1, :]
+        quad_centroids, _, quad_areas, _ = self._quad_data_from_tensor(quad_base_tensor)
+        
+        pyramids_apex = pyr_cells_tensor[:, -1, :]
+        pyramids_heights = norm(pyramids_apex - quad_centroids, axis=1)
+        
+        self.pyramids_vol = (1./3.) * quad_areas.flatten() * pyramids_heights
+        self.pyramids_centroids = (0.75 * quad_centroids) + (0.25 * pyramids_apex)
 
     def calc_cells_data(self) -> None:
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
