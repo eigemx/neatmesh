@@ -17,17 +17,18 @@ def duplicate_nodes_count(points: np.ndarray) -> int:
 
 
 def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
-    tri_centers = np.mean(tri_faces_tensor, axis=2)
+    tri_centers = np.mean(tri_faces_tensor, axis=1)
     tri_normals = np.cross(
         tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
         tri_faces_tensor[:, 2, :] - tri_faces_tensor[:, 0, :]
     )
-    tri_areas = norm(tri_normals, axis=1)
+    tri_areas = norm(tri_normals, axis=1) / 2.
     tri_edges_norms = np.array([
         norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 1, :], axis=1),
         norm(tri_faces_tensor[:, 0, :] - tri_faces_tensor[:, 2, :], axis=1),
         norm(tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 2, :], axis=1)
-    ])
+    ]).swapaxes(0, 1)
+
     tri_aspect_ratios = np.max(tri_edges_norms, axis=0) / np.min(tri_edges_norms, axis=0)
     
     return tri_centers, tri_normals, tri_areas, tri_aspect_ratios
