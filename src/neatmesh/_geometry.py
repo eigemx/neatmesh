@@ -121,9 +121,9 @@ def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
 
 
 def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
-    gc = np.mean(wedge_cells_tensor, axis=1)
+    gc = np.mean(wedge_cells_tensor, axis=1)[:, np.newaxis, :]
     n_wedge = wedge_cells_tensor.shape[0]
-    wedges_vol = np.zeros(shape=(n_wedge,))
+    wedges_vol = np.zeros(shape=(n_wedge, 1))
 
     # Divide wedge into 5 surfaces (two triangles and three quads)
     upper_tri_tensor = wedge_cells_tensor[:, [3, 4, 5], :]
@@ -133,10 +133,10 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     quad3_tensor = wedge_cells_tensor[:, [0, 3, 5, 2], :]
 
     # Upper & lower tetrahedrons
-    gc = np.mean(wedge_cells_tensor, axis=1)[:, np.newaxis, :]
     upper_tetra_tensor = np.concatenate([upper_tri_tensor, gc], axis=1)
     lower_tetra_tensor = np.concatenate([lower_tri_tensor, gc], axis=1)
     tetras_tensor = np.concatenate([upper_tetra_tensor, lower_tetra_tensor], axis=0)
+
     tetras_data = tetra_data_from_tensor(tetras_tensor)
 
     upper_tetra_vol, lower_tetra_vol = (
@@ -157,6 +157,9 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     pyramids_tensor = np.concatenate(
         [pyramid1_tensor, pyramid2_tensor, pyramid3_tensor], axis=0
     )
+    print(pyramids_tensor.shape)
+    quit()
+
     pyramids_data = pyramid_data_from_tensor(pyramids_tensor)
     pyramid1_vol, pyramid2_vol, pyramid3_vol = (
         pyramids_data[1][0:n_wedge],
@@ -178,6 +181,7 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     wedges_center += pyramid1_centers * pyramid1_vol[:, np.newaxis]
     wedges_center += pyramid2_centers * pyramid2_vol[:, np.newaxis]
     wedges_center += pyramid3_centers * pyramid3_vol[:, np.newaxis]
+    wedges_center /= wedges_vol
     
     return wedges_center, wedges_vol
 
