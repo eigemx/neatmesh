@@ -120,6 +120,7 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
 
 
 def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
+    #TODO: Check if non-regular hex might be allowed by meshio
     x = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 1, :], axis=1)
     y = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 3, :], axis=1)
     z = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 4, :], axis=1)
