@@ -130,7 +130,7 @@ if __name__ == "__main__":
     for point in q.mesh_bounding_box():
         rprint(point)
 '''
-reader = MeshReader3D("./neatmesh/test_meshes/one_tetra.stl")
+reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
 q = QualityInspector3D(reader)
 q.calc_cell_types_counts()
 
