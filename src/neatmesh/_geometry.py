@@ -82,14 +82,14 @@ def quad_data_from_tensor(faces_tensor: np.ndarray):
 
 def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):
     # TODO: Shoudln't this be axis=1?
-    tetra_centers = np.mean(tetra_cells_tensor, axis=0)
+    tetra_centers = np.mean(tetra_cells_tensor, axis=1)
     tetra_vols = np.abs(
         det(
             np.array((
-                tetra_cells_tensor[:,0,:] - tetra_cells_tensor[:,1],
+                tetra_cells_tensor[:,0,:] - tetra_cells_tensor[:,1,:],
                 tetra_cells_tensor[:,1,:] - tetra_cells_tensor[:,2,:],
                 tetra_cells_tensor[:,2,:] - tetra_cells_tensor[:,3,:],
-            )).reshape(-1, 3, 3)
+            )).swapaxes(0, 1)
             )
         ) / 6.0
     return tetra_centers, tetra_vols
