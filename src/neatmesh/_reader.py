@@ -35,12 +35,11 @@ class MeshReader3D:
                 self.cell_blocks.append(cell_block)
                 self.n_cells += len(cell_block.data)
 
-            elif ctype not in meshio_2d \
-                and cell_block.type not in meshio_1d:
+            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
                 raise NonSupportedElement(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
-        
+
         if not self.cell_blocks:
             raise InvalidMeshException("No 3D elements were found in mesh")
 
@@ -55,13 +54,13 @@ class MeshReader3D:
 
         # maps face id to a list of cells id. A face is shared by max. 2 cells.
         self.faceid_to_cellid: Dict[int, List[int]] = {}
-        
+
         # keep track of the face id to be processed.
         self.current_faceid: int = 0
 
         # keep track of the cell id to be processed.
         self.current_cellid: int = 0
-        
+
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
@@ -78,10 +77,13 @@ class MeshReader3D:
 
                         # add face points labels to `faces`
                         self.faces.append(face)
-                        self.faceid_to_cellid[self.current_faceid] = [self.current_cellid, -1]
+                        self.faceid_to_cellid[self.current_faceid] = [
+                            self.current_cellid,
+                            -1,
+                        ]
                         self.current_faceid += 1
                     else:
-                    # link the face to the cell who owns it
+                        # link the face to the cell who owns it
                         face_id = self.face_to_faceid[fface]
                         self.faceid_to_cellid[face_id][1] = self.current_cellid
 
