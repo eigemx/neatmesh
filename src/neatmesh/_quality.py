@@ -4,6 +4,7 @@ from ._common import meshio_type_to_alpha
 from ._reader import MeshIOCellType, MeshReader3D
 from ._geometry import *
 
+
 class QualityInspector3D:
     def __init__(self, mr: MeshReader3D) -> None:
         self.reader = mr
@@ -24,7 +25,7 @@ class QualityInspector3D:
 
         for cell_block in self.reader.cell_blocks:
             alpha_cell_type = meshio_type_to_alpha[cell_block.type]
-            if  alpha_cell_type == "hexahedron":
+            if alpha_cell_type == "hexahedron":
                 self.hex_count += len(cell_block.data)
             elif alpha_cell_type == "tetra":
                 self.tetra_count += len(cell_block.data)
@@ -34,7 +35,7 @@ class QualityInspector3D:
                 self.wedge_count += len(cell_block.data)
 
     def _calc_face_data_tri(self):
-        tri_faces = self.faces[self.faces[:,-1] == -1][:,:-1]
+        tri_faces = self.faces[self.faces[:, -1] == -1][:, :-1]
         n_faces = tri_faces.shape[0]
 
         tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
@@ -50,12 +51,12 @@ class QualityInspector3D:
             self.tri_centers,
             self.tri_normals,
             self.tri_areas,
-            self.tri_aspect_ratios
+            self.tri_aspect_ratios,
         ) = tri_data_from_tensor(tri_faces_tensor)
 
     def _calc_face_data_quad(self):
         # Danger: this will mix up between hex quads and wedge/pyramid quads
-        quad_faces = self.faces[self.faces[:,-1] != -1]
+        quad_faces = self.faces[self.faces[:, -1] != -1]
         n_faces = quad_faces.shape[0]
 
         quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
@@ -71,7 +72,7 @@ class QualityInspector3D:
             self.quad_centroids,
             self.quad_normals,
             self.quad_areas,
-            self.quad_aspect_ratios
+            self.quad_aspect_ratios,
         ) = quad_data_from_tensor(quad_faces_tensor)
 
     def _calc_cell_data_tetra(self):
@@ -115,7 +116,7 @@ class QualityInspector3D:
         wedge_cells_tensor = np.zeros(shape=(self.wedge_count, 6, 3))
 
         for cell_block in self.reader.cell_blocks:
-            if meshio_type_to_alpha[cell_block.type] == "pyramid":
+            if meshio_type_to_alpha[cell_block.type] == "wedge":
                 cells = cell_block.data
 
         for i, cell in enumerate(cells):
@@ -127,6 +128,8 @@ class QualityInspector3D:
                 self.points[cell[4]],
                 self.points[cell[5]],
             )
+
+        wedge_data_from_tensor(wedge_cells_tensor)
 
     def _calc_cell_data_pyramid(self):
         pyr_cells_tensor = np.zeros(shape=(self.pyramid_count, 5, 3))
@@ -144,10 +147,9 @@ class QualityInspector3D:
                 self.points[cell[4]],
             )
 
-        (
-            self.pyramids_centroids,
-            self.pyramids_vol
-        ) = pyramid_data_from_tensor(pyr_cells_tensor)
+        (self.pyramids_centroids, self.pyramids_vol) = pyramid_data_from_tensor(
+            pyr_cells_tensor
+        )
 
     def calc_cells_data(self) -> None:
         self.cells_centers = np.zeros(shape=(self.n_cells, 3))
@@ -168,9 +170,10 @@ class QualityInspector3D:
             MeshIOCellType.Pyramid14: self._calc_cell_data_pyramid,
         }
         for i, (cell, cell_type) in enumerate(self.reader.cells()):
-            self.cells_centers[i, :], self.cells_volumes[i] = cell_type_data_handler_map[
-                cell_type
-            ](cell)
+            (
+                self.cells_centers[i, :],
+                self.cells_volumes[i],
+            ) = cell_type_data_handler_map[cell_type](cell)
 
     def calc_faces_nonortho(self) -> None:
         self.non_ortho = np.zeros(self.faces_areas.shape)

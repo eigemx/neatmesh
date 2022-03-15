@@ -113,15 +113,15 @@ meshio_type_to_alpha: Final = {
     "tetra": "tetra",
     "tetra10": "tetra",
     "hexahedron": "hexahedron",
-    "hexahedron20":"hexahedron",
-    "hexahedron24":"hexahedron",
-    "hexahedron27":"hexahedron",
-    "wedge": "wedge",    
-    "wedge12":"wedge",
-    "wedge15":"wedge",
-    "pyramid":"pyramid",
+    "hexahedron20": "hexahedron",
+    "hexahedron24": "hexahedron",
+    "hexahedron27": "hexahedron",
+    "wedge": "wedge",
+    "wedge12": "wedge",
+    "wedge15": "wedge",
+    "pyramid": "pyramid",
     "pyramid13": "pyramid",
-    "pyramid14":   "pyramid",
+    "pyramid14": "pyramid",
 }
 
 meshio_2d: Final = {
@@ -141,6 +141,7 @@ cell_type_to_faces_func: Final = {
     MeshIOCellType.Wedge: wedge_cell_faces,
     MeshIOCellType.Pyramid: pyramid_cell_faces,
 }
+
 
 def is_3d(mesh: Mesh) -> bool:
     """Check if a meshio mesh is 3-dimensional"""
