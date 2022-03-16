@@ -20,7 +20,6 @@ class QualityInspector3D:
     def duplicate_nodes_count(self) -> int:
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
-
     def bounding_box(self) -> Tuple:
         x_min, y_min, z_min = np.min(self.points, axis=0)
         x_max, y_max, z_max = np.max(self.points, axis=0)
@@ -62,7 +61,7 @@ class QualityInspector3D:
         self.face_normals = np.zeros(shape=(self.n_faces, 3))
         self.face_areas = np.zeros(shape=(self.n_faces,))
         self.face_aspect_ratios = np.zeros(shape=(self.n_faces,))
-        
+
         self.n_tri = 0
         self.n_quad = 0
 
@@ -85,7 +84,7 @@ class QualityInspector3D:
 
             quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
             (
-                self.face_centroids[self.quad_mask],
+                self.face_centers[self.quad_mask],
                 self.face_normals[self.quad_mask],
                 self.face_areas[self.quad_mask],
                 self.face_aspect_ratios[self.quad_mask],
@@ -132,30 +131,20 @@ class QualityInspector3D:
         pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
         return pyramid_data_from_tensor(pyr_cells_tensor)
 
-    def calc_faces_nonortho(self) -> None:
-        self.non_ortho = np.zeros(self.faces_areas.shape)
-
-        for i, face in enumerate(self.reader.faces_set):
-            face_id = self.reader.face_to_faceid[face]
-            owner_cell_id, neigbor_cell_id = self.reader.faceid_to_cellid[face_id]
-
-            if neigbor_cell_id == -1:
-                # Boundary face, nothing to do here
-                self.non_ortho[i] = np.nan
-                continue
-
-            owner_center = self.cells_centers[owner_cell_id]
-            neighbor_center = self.cells_centers[neigbor_cell_id]
-
-            # face normal
-            sf = self.faces_normals[face_id]
-
-            # Line connecting current and adjacent cells centroids.
-            ef = neighbor_center - owner_center
-
-            if _dot(ef, sf) < 0:
-                ef = -ef
-
-            # Angle between ef and sf.
-            costheta = _dot(ef, sf) / (_norm(ef) * _norm(sf))
-            self.non_ortho[i] = acos(costheta) * (180.0 / pi)
+    def check_non_ortho(self) -> None:
+        owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
+        interior_faces_mask = owner_neighbor[:, 1] != -1
+        interior_faces = owner_neighbor[interior_faces_mask]
+        
+        owners, neighbors = interior_faces[:, 0], interior_faces[:, 1]
+        owner_centers = np.take(self.cells_centers, owners, axis=0)
+        neighbor_centers = np.take(self.cells_centers, neighbors, axis=0)
+        
+        sf = self.face_normals[interior_faces_mask]
+        ef = neighbor_centers - owner_centers
+        
+        dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
+        ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
+        
+        costheta = dot(ef, sf)
+        self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
