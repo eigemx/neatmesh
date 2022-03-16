@@ -77,6 +77,7 @@ class QualityInspector3D:
                 self.face_areas[self.tri_mask],
                 self.face_aspect_ratios[self.tri_mask],
             ) = tri_data_from_tensor(tri_faces_tensor)
+            self.n_tri += len(self.tri_mask)
 
         if self.has_quad:
             self.quad_mask = self.faces[:, -1] != -1
@@ -89,6 +90,7 @@ class QualityInspector3D:
                 self.face_areas[self.quad_mask],
                 self.face_aspect_ratios[self.quad_mask],
             ) = quad_data_from_tensor(quad_faces_tensor)
+            self.n_quad += len(self.quad_mask)
 
     def analyze_cells(self) -> None:
         self.cells_centers = np.array([]).reshape(0, 3)
