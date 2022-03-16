@@ -51,6 +51,6 @@ def test_tetra_mesh():
     mesh = MeshReader3D('./neatmesh/test_meshes/fine_cylinder.med')
     q =QualityInspector3D(mesh)
     q.count_cell_types()
-    q._calc_cell_data_tetra()
+    q.analyze_tetra_cells()
     assert(np.allclose(np.sum(q.tetra_vols), [3.14061]))
 
