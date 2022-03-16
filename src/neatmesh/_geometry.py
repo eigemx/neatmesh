@@ -109,11 +109,17 @@ def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):
 def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
     # Pyramid base area and centroid
     quad_base_tensor = pyr_cells_tensor[:, 0:-1, :]
-    quad_centroids, _, quad_areas, _ = quad_data_from_tensor(quad_base_tensor)
+    quad_centroids, quad_normals, quad_areas, _ = quad_data_from_tensor(quad_base_tensor)
 
     pyramids_apex = pyr_cells_tensor[:, -1, :]
-    pyramids_heights = norm(pyramids_apex - quad_centroids, axis=1)
+    #pyramids_heights = norm(pyramids_apex - quad_centroids, axis=1)[:, np.newaxis]
+    normals_unit_vecs = quad_normals / norm(quad_normals, axis=1)[:, np.newaxis]
 
+    pyramids_heights = np.sum(
+        (pyramids_apex - quad_centroids) * normals_unit_vecs,
+        axis=1
+    )
+        
     pyramids_vol = (1.0 / 3.0) * quad_areas.flatten() * pyramids_heights
     pyramids_centroids = (0.75 * quad_centroids) + (0.25 * pyramids_apex)
 
@@ -182,7 +188,7 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     wedges_center += pyramid3_centers * pyramid3_vol[:, np.newaxis]
     wedges_center /= wedges_vol
     
-    return wedges_center, wedges_vol
+    return wedges_center, wedges_vol.flatten()
 
 def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
     # TODO: Check if non-regular hex might be allowed by meshio
