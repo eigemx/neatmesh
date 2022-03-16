@@ -88,3 +88,76 @@ class MeshReader3D:
                         self.faceid_to_cellid[face_id][1] = self.current_cellid
 
                 self.current_cellid += 1
+
+
+def hex_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
+    """Returns coordinates of 6 faces of a hexahedron cell, using meshio nodes ordering
+    Args:
+        cell (List): list of points defining the cell
+    Returns:
+        List[List]: list of list of faces points labels
+    """
+    return (
+        (cell[1], cell[2], cell[6], cell[5]),
+        (cell[0], cell[4], cell[7], cell[3]),
+        (cell[3], cell[7], cell[6], cell[2]),
+        (cell[0], cell[1], cell[5], cell[4]),
+        (cell[4], cell[5], cell[6], cell[7]),
+        (cell[0], cell[3], cell[2], cell[1]),
+    )
+
+
+def wedge_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
+    """Returns coordinates of 5 faces of a wedge cell,
+    using meshio nodes ordering for wedge
+    Args:
+        cell (List): list of points defining the cell
+    Returns:
+        List[List]: list of list of faces points labels
+    """
+    return (
+        (cell[0], cell[2], cell[1], -1),
+        (cell[3], cell[4], cell[5], -1),
+        (cell[3], cell[0], cell[1], cell[4]),
+        (cell[0], cell[3], cell[5], cell[2]),
+        (cell[1], cell[2], cell[5], cell[4]),
+    )
+
+
+def tetra_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
+    """Returns coordinates of 4 faces of a tetrahedral cell,
+    using meshio nodes ordering for tetra
+    Args:
+        cell (List): list of points defining the cell
+    Returns:
+        List[List]: list of list of faces points labels
+    """
+    return (
+        (cell[0], cell[2], cell[1], -1),
+        (cell[1], cell[2], cell[3], -1),
+        (cell[0], cell[1], cell[3], -1),
+        (cell[0], cell[3], cell[2], -1),
+    )
+
+
+def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
+    """Returns coordinates of 4 faces of a tetrahedral cell,
+    using meshio nodes ordering for pyramid
+    Args:
+        cell (List): list of points defining the cell
+    Returns:
+        List[List]: list of list of faces points labels
+    """
+    return (
+        (cell[2], cell[1], cell[0], cell[3]),
+        (cell[2], cell[3], cell[4], -1),
+        (cell[1], cell[4], cell[0], -1),
+        (cell[3], cell[0], cell[4], -1),
+    )
+
+cell_type_to_faces_func: Final = {
+    "hexahedron": hex_cell_faces,
+    "tetra": tetra_cell_faces,
+    "wedge": wedge_cell_faces,
+    "pyramid": pyramid_cell_faces,
+}
