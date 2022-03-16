@@ -1,23 +1,23 @@
 import numpy as np
 
 from ._common import meshio_type_to_alpha
-from ._reader import MeshIOCellType, MeshReader3D
+from ._reader import MeshReader3D
 from ._geometry import *
 
 
 class QualityInspector3D:
-    def __init__(self, mr: MeshReader3D) -> None:
-        self.reader = mr
+    def __init__(self, reader: MeshReader3D) -> None:
+        self.reader = reader
 
         self.points = self.reader.points
-        self.n_points = mr.n_points
+        self.n_points = reader.n_points
 
         self.faces = np.asarray(self.reader.faces)
-        self.n_faces = len(mr.faces)
+        self.n_faces = len(reader.faces)
 
-        self.n_cells = mr.n_cells
+        self.n_cells = reader.n_cells
 
-    def calc_cell_types_counts(self) -> None:
+    def count_cell_types(self) -> None:
         self.hex_count = 0
         self.tetra_count = 0
         self.wedge_count = 0
@@ -99,19 +99,12 @@ class QualityInspector3D:
         self.cells_volumes = np.zeros(shape=(self.n_cells,))
 
         cell_type_data_handler_map = {
-            MeshIOCellType.Hex: self._calc_cell_data_hex,
-            MeshIOCellType.Hex20: self._calc_cell_data_hex,
-            MeshIOCellType.Hex24: self._calc_cell_data_hex,
-            MeshIOCellType.Hex27: self._calc_cell_data_hex,
-            MeshIOCellType.Tetra: self._calc_cell_data_tetra,
-            MeshIOCellType.Tetra10: self._calc_cell_data_tetra,
-            MeshIOCellType.Wedge: self._calc_cell_data_wedge,
-            MeshIOCellType.Wedge12: self._calc_cell_data_wedge,
-            MeshIOCellType.Wedge15: self._calc_cell_data_wedge,
-            MeshIOCellType.Pyramid: self._calc_cell_data_pyramid,
-            MeshIOCellType.Pyramid13: self._calc_cell_data_pyramid,
-            MeshIOCellType.Pyramid14: self._calc_cell_data_pyramid,
+            "hexahedron": self._calc_cell_data_hex,
+            "tetra": self._calc_cell_data_tetra,
+            "wedge": self._calc_cell_data_wedge,
+            "pyramid": self._calc_cell_data_pyramid,
         }
+
         for i, (cell, cell_type) in enumerate(self.reader.cells()):
             (
                 self.cells_centers[i, :],

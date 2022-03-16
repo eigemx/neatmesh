@@ -132,7 +132,7 @@ if __name__ == "__main__":
 '''
 reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
 q = QualityInspector3D(reader)
-q.calc_cell_types_counts()
+q.count_cell_types()
 
 print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
 q._calc_face_data_tri()
