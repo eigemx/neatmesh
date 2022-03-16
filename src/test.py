@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-'''
+
 def report_elements_count(console: Console, reader: MeshReader3D) -> None:
     cell_count = reader.n_cells
     face_count = len(reader.faces_set)
@@ -39,7 +39,7 @@ def report_face_types(console: Console, quad_count, tri_count) -> None:
     console.print(face_count_table)
 
 
-def report_cell_types(console: Console) -> None:
+def report_cell_types(console: Console, q) -> None:
     cell_count_table = Table(title="", box=box.SIMPLE)
     cell_count_table.add_column("Type", justify="left", style="magenta")
     cell_count_table.add_column("Count", justify="left")
@@ -68,10 +68,10 @@ def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
 
 def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
     stats = {
-        "Face Area": q.faces_areas,
-        "Face Aspect Ratio": q.aspect_ratio,
+        "Face Area": q.face_areas,
+        "Face Aspect Ratio": q.face_aspect_ratios,
         "Cell Volume": q.cells_volumes,
-        "Non-Orthogonality": q.non_ortho 
+        #"Non-Orthogonality": q.non_ortho 
     }
     
     stats_table = Table(title="Mesh Statistics", box=box.SIMPLE)
@@ -102,43 +102,39 @@ if __name__ == "__main__":
     )
     console = Console()
 
-    print("Reading mesh...")
-    mesh = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
-    mesh.process_mesh()
+    with console.status("Reading mesh..."):
+        mesh = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
     report_elements_count(console, mesh)
 
-    print("Collecting cell types..")
-    q = QualityInspector3D(mesh)
-    q.calc_cell_types_counts()
+    with console.status("Collecting cell types.."):
+        q = QualityInspector3D(mesh)
+        q.count_cell_types()
 
-    report_cell_types(console)
+    report_cell_types(console, q)
 
-    print("Calculating face centers, normals, areas and aspect ratio...\n")
-    q.calc_faces_data()
+    with console.status("Calculating face centers, normals, areas and aspect ratio..."):
+        q.analyze_faces()
     report_face_types(console, q.n_quad, q.n_tri)
 
-    print("Calculating cell centers and volumes...")
-    q.calc_cells_data()
+    with console.status("Calculating cell centers and volumes..."):
+        q.analyze_cells()
 
-    print("Checking non-orthogonality...\n")
-    q.calc_faces_nonortho()
+    '''print("Checking non-orthogonality...\n")
+    q.calc_faces_nonortho()'''
 
     report_mesh_stats(console, q)
 
     rprint("Count of duplicate nodes = ", q.duplicate_nodes_count())
     rprint("Mesh bounding box: ")
-    for point in q.mesh_bounding_box():
+    for point in q.bounding_box():
         rprint(point)
-'''
-reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
+
+'''reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
 q = QualityInspector3D(reader)
-q.count_cell_types()
-
 print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
-q._calc_face_data_tri()
-q._calc_cell_data_tetra()
 print('Aspect ratio: ', 
-      np.max(q.tri_aspect_ratios), np.mean(q.tri_aspect_ratios), np.min(q.tri_aspect_ratios))
+      np.max(q.face_aspect_ratios), np.mean(q.face_aspect_ratios), np.min(q.face_aspect_ratios))
 print('Area: ', 
-      np.max(q.tri_areas), np.mean(q.tri_areas), np.min(q.tri_areas))
+      np.max(q.face_areas), np.mean(q.face_areas), np.min(q.face_areas))
 
+'''

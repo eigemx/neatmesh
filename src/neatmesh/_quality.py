@@ -17,99 +17,118 @@ class QualityInspector3D:
 
         self.n_cells = reader.n_cells
 
+    def duplicate_nodes_count(self) -> int:
+        return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
+
+
+    def bounding_box(self) -> Tuple:
+        x_min, y_min, z_min = np.min(self.points, axis=0)
+        x_max, y_max, z_max = np.max(self.points, axis=0)
+        return (
+            (x_min, y_min, z_min),
+            (x_max, y_max, z_max),
+        )
+
     def count_cell_types(self) -> None:
         self.hex_count = 0
         self.tetra_count = 0
         self.wedge_count = 0
         self.pyramid_count = 0
+        self.has_tri = False
+        self.has_quad = False
 
         for cell_block in self.reader.cell_blocks:
             alpha_cell_type = meshio_type_to_alpha[cell_block.type]
             if alpha_cell_type == "hexahedron":
                 self.hex_count += len(cell_block.data)
+                self.has_quad = True
+
             elif alpha_cell_type == "tetra":
                 self.tetra_count += len(cell_block.data)
+                self.has_tri = True
+
             elif alpha_cell_type == "pyramid":
                 self.pyramid_count += len(cell_block.data)
+                self.has_quad = True
+                self.has_tri = True
+
             elif alpha_cell_type == "wedge":
                 self.wedge_count += len(cell_block.data)
+                self.has_quad = True
+                self.has_tri = True
 
-    def _calc_face_data_tri(self):
-        tri_faces = self.faces[self.faces[:, -1] == -1][:, :-1]
-        tri_faces_tensor = np.take(self.points, tri_faces, axis=0)[:, 0:3, :]
+    def analyze_faces(self):
+        self.face_centers = np.zeros(shape=(self.n_faces, 3))
+        self.face_normals = np.zeros(shape=(self.n_faces, 3))
+        self.face_areas = np.zeros(shape=(self.n_faces,))
+        self.face_aspect_ratios = np.zeros(shape=(self.n_faces,))
+        
+        self.n_tri = 0
+        self.n_quad = 0
 
-        (
-            self.tri_centers,
-            self.tri_normals,
-            self.tri_areas,
-            self.tri_aspect_ratios,
-        ) = tri_data_from_tensor(tri_faces_tensor)
+        if self.has_tri:
+            self.tri_mask = self.faces[:, -1] == -1
+            tri_faces = self.faces[self.tri_mask][:, :-1]
+            tri_faces_tensor = np.take(self.points, tri_faces, axis=0)[:, 0:3, :]
 
-    def _calc_face_data_quad(self):
-        quad_faces = self.faces[self.faces[:, -1] != -1]
+            (
+                self.face_centers[self.tri_mask],
+                self.face_normals[self.tri_mask],
+                self.face_areas[self.tri_mask],
+                self.face_aspect_ratios[self.tri_mask],
+            ) = tri_data_from_tensor(tri_faces_tensor)
 
-        quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
-        (
-            self.quad_centroids,
-            self.quad_normals,
-            self.quad_areas,
-            self.quad_aspect_ratios,
-        ) = quad_data_from_tensor(quad_faces_tensor)
+        if self.has_quad:
+            self.quad_mask = self.faces[:, -1] != -1
+            quad_faces = self.faces[self.quad_mask]
 
-    def _calc_cell_data_tetra(self):
-        for cell_block in self.reader.cell_blocks:
-            if meshio_type_to_alpha[cell_block.type] == "tetra":
-                cells = cell_block.data
+            quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
+            (
+                self.face_centroids[self.quad_mask],
+                self.face_normals[self.quad_mask],
+                self.face_areas[self.quad_mask],
+                self.face_aspect_ratios[self.quad_mask],
+            ) = quad_data_from_tensor(quad_faces_tensor)
 
-        tetra_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
-        self.tetra_centers, self.tetra_vols = tetra_data_from_tensor(tetra_cells_tensor)
+    def analyze_cells(self) -> None:
+        self.cells_centers = np.array([]).reshape(0, 3)
+        self.cells_volumes = np.array([])
 
-    def _calc_cell_data_hex(self):
-        for cell_block in self.reader.cell_blocks:
-            if meshio_type_to_alpha[cell_block.type] == "hexahedron":
-                cells = cell_block.data
-
-        hex_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:8, :]
-
-        self.hex_centers, self.hex_vols = hex_data_from_tensor(hex_cells_tensor)
-
-    def _calc_cell_data_wedge(self):
-        wedge_cells_tensor = np.zeros(shape=(self.wedge_count, 6, 3))
-
-        for cell_block in self.reader.cell_blocks:
-            if meshio_type_to_alpha[cell_block.type] == "wedge":
-                cells = cell_block.data
-
-        wedge_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:6, :]
-        wedge_data_from_tensor(wedge_cells_tensor)
-
-    def _calc_cell_data_pyramid(self):
-        for cell_block in self.reader.cell_blocks:
-            if meshio_type_to_alpha[cell_block.type] == "pyramid":
-                cells = cell_block.data
-
-        pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
-
-        (self.pyramids_centroids, self.pyramids_vol) = pyramid_data_from_tensor(
-            pyr_cells_tensor
-        )
-
-    def calc_cells_data(self) -> None:
-        self.cells_centers = np.zeros(shape=(self.n_cells, 3))
-        self.cells_volumes = np.zeros(shape=(self.n_cells,))
-
-        cell_type_data_handler_map = {
-            "hexahedron": self._calc_cell_data_hex,
-            "tetra": self._calc_cell_data_tetra,
-            "wedge": self._calc_cell_data_wedge,
-            "pyramid": self._calc_cell_data_pyramid,
+        cell_type_handler_map = {
+            "hexahedron": self.analyze_hex_cells,
+            "tetra": self.analyze_tetra_cells,
+            "wedge": self.analyze_wedge_cells,
+            "pyramid": self.analyze_pyramid_cells,
         }
 
-        for i, (cell, cell_type) in enumerate(self.reader.cells()):
-            (
-                self.cells_centers[i, :],
-                self.cells_volumes[i],
-            ) = cell_type_data_handler_map[cell_type](cell)
+        for cell_block in self.reader.cell_blocks:
+            ctype = meshio_type_to_alpha[cell_block.type]
+            handler = cell_type_handler_map[ctype]
+            centers, vols = handler(cell_block.data)
+            self.cells_centers = np.concatenate(
+                [self.cells_centers, centers],
+                axis=0
+            )
+            self.cells_volumes = np.concatenate(
+                [self.cells_volumes, vols],
+                axis=0
+            )
+
+    def analyze_tetra_cells(self, cells):
+        tetra_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
+        return tetra_data_from_tensor(tetra_cells_tensor)
+
+    def analyze_hex_cells(self, cells):
+        hex_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:8, :]
+        return hex_data_from_tensor(hex_cells_tensor)
+
+    def analyze_wedge_cells(self, cells):
+        wedge_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:6, :]
+        return wedge_data_from_tensor(wedge_cells_tensor)
+
+    def analyze_pyramid_cells(self, cells):
+        pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
+        return pyramid_data_from_tensor(pyr_cells_tensor)
 
     def calc_faces_nonortho(self) -> None:
         self.non_ortho = np.zeros(self.faces_areas.shape)

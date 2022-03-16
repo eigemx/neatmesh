@@ -3,19 +3,6 @@ import numpy as np
 from numpy.linalg import norm, det
 
 
-def bounding_box(points: np.ndarray) -> Tuple:
-    x_min, y_min, z_min = np.min(points, axis=0)
-    x_max, y_max, z_max = np.max(points, axis=0)
-    return (
-        (x_min, y_min, z_min),
-        (x_max, y_max, z_max),
-    )
-
-
-def duplicate_nodes_count(points: np.ndarray) -> int:
-    return points.shape[0] - np.unique(points, axis=0).shape[0]
-
-
 def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
     tri_centers = np.mean(tri_faces_tensor, axis=1)
     tri_normals = np.cross(
@@ -31,10 +18,9 @@ def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
         ]
     ).swapaxes(0, 1)
 
-    tri_aspect_ratios = np.max(tri_edges_norms, axis=0) / np.min(
-        tri_edges_norms, axis=0
+    tri_aspect_ratios = np.max(tri_edges_norms, axis=1) / np.min(
+        tri_edges_norms, axis=1
     )
-
     return tri_centers, tri_normals, tri_areas, tri_aspect_ratios
 
 
