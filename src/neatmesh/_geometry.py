@@ -157,8 +157,7 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     pyramids_tensor = np.concatenate(
         [pyramid1_tensor, pyramid2_tensor, pyramid3_tensor], axis=0
     )
-    print(pyramids_tensor.shape)
-    quit()
+    
 
     pyramids_data = pyramid_data_from_tensor(pyramids_tensor)
     pyramid1_vol, pyramid2_vol, pyramid3_vol = (

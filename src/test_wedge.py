@@ -17,8 +17,8 @@ def test_wedge():
     cells = [0, 1, 2, 3, 4, 5]
     wedge_cell_tensor = np.array([
         [points[i] for i in cells],
-        [points[i] for i in cells],
-    ]).reshape(2, 6, 3)
+        #[points[i] for i in cells],
+    ]).reshape(1, 6, 3)
         
     center, volume = wedge_data_from_tensor(wedge_cell_tensor)
     
