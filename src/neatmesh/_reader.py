@@ -1,37 +1,52 @@
-from typing import Callable, FrozenSet, List, Set, Tuple, Dict, Iterator
+from typing import Dict, FrozenSet, List, Set, Tuple
 
 from meshio import ReadError, read
 
-from ._exceptions import InvalidMeshException, NonSupportedElement
 from ._common import *
+from ._exceptions import InvalidMeshException, NonSupportedElement
 
 
-# TODO: Check for unsupported cell types
+# TODO: check if mesh exists before calling MeshReader3D
 class MeshReader3D:
     def __init__(self, mesh_file_path: str) -> None:
-        # TODO: check if file exists outside of here,
-        # raise meshio.ReadError only in case meshio cannot read or
-        # support given mesh.
         try:
             self.mesh = read(mesh_file_path)
         except ReadError as exception:
-            error = "Could not open mesh file.\n"
+            error = "Could not read mesh file (meshio error).\n"
             error += f"{exception}"
             raise InvalidMeshException(error) from exception
 
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
-        self.n_cells = sum(
-            [
-                len(cell_block.data)
-                for cell_block in self.mesh.cells
-                if cell_block.type in meshio_3d
-            ]
-        )
+        self._check_mesh()
+        self.process_mesh()
 
+    def _check_mesh(self):
+        self.cell_blocks = []
+        self.n_cells = 0
+
+        for cell_block in self.mesh.cells:
+            ctype = cell_block.type
+            if ctype in meshio_type_to_alpha:
+                ctype = meshio_type_to_alpha[ctype]
+
+            if ctype in meshio_3d and cell_block.data.size > 0:
+                self.cell_blocks.append(cell_block)
+                self.n_cells += len(cell_block.data)
+
+            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
+                raise NonSupportedElement(
+                    f"neatmesh does not support element type: {cell_block.type}"
+                )
+
+        if not self.cell_blocks:
+            raise InvalidMeshException("No 3D elements were found in mesh")
+
+    def process_mesh(self) -> None:
         # list of points labels of processed faces (all types)
         self.faces: List[Tuple[int, ...]] = []
+
         self.faces_set: Set[FrozenSet] = set()
 
         # map face points to face index in `faces`
@@ -46,91 +61,30 @@ class MeshReader3D:
         # keep track of the cell id to be processed.
         self.current_cellid: int = 0
 
-    def _check_unsupported(self):
-        for cell in self.mesh.cells:
-            if cell.type not in meshio_3d and cell.type not in meshio_2d:
-                raise NonSupportedElement(
-                    f"neatmesh does not support element type: {cell.type}"
-                )
+        for cell_block in self.cell_blocks:
+            cells = cell_block.data
 
-    def process_mesh(self) -> None:
-        for cell_type, faces_fn in cell_type_to_faces_func.items():
-            self._process_cells(cell_type, faces_fn)
+            for cell in cells:
+                cell_type = meshio_type_to_alpha[cell_block.type]
+                faces_func = cell_type_to_faces_func[cell_type]
+                faces = faces_func(cell)
+                for face in faces:
+                    fface = frozenset(face)
+                    # have we met `face` before?
+                    if not fface in self.faces_set:
+                        self.face_to_faceid[fface] = self.current_faceid
+                        self.faces_set.add(fface)
 
-    def cells(self) -> Iterator[Tuple[Tuple[int, ...], str]]:
-        for cell_block in self.mesh.cells:
-            if cell_block.type not in cell_type_to_faces_func:
-                continue
-            for cell in cell_block.data:
-                yield cell, cell_block.type
+                        # add face points labels to `faces`
+                        self.faces.append(face)
+                        self.faceid_to_cellid[self.current_faceid] = [
+                            self.current_cellid,
+                            -1,
+                        ]
+                        self.current_faceid += 1
+                    else:
+                        # link the face to the cell who owns it
+                        face_id = self.face_to_faceid[fface]
+                        self.faceid_to_cellid[face_id][1] = self.current_cellid
 
-    def _face_exists(self, face_labels: Tuple[int, ...]) -> bool:
-        """Checks if a list of face labels (aka a face) exists or not
-        Args:
-            face_labels (list): list of face points labels
-        Returns:
-            bool: True if face exists, False otherwise
-        """
-        return frozenset(face_labels) in self.faces_set
-
-    def _add_face(self, face: Tuple[int, ...]) -> int:
-        """Adds a face to list of processed faces and assign an id for it.
-        Args:
-            face (List): list of face points labels
-        Returns:
-            int: newly added face id
-        """
-        sface = frozenset(face)
-        self.face_to_faceid[sface] = self.current_faceid
-        self.faces_set.add(sface)
-
-        # add face points labels to `faces`
-        self.faces.append(face)
-
-        self.current_faceid += 1
-        return self.current_faceid - 1
-
-    def _link_face_to_cell(self, face: Tuple[int, ...], cellid: int) -> None:
-        """Associates a face (list of points labels) to an owner or
-        a neighbor cell given the cell id.
-        Args:
-            face (List): list of face points labels
-            cellid (int): owner/neighbor cell id
-        """
-        face_id = self.face_to_faceid[frozenset(face)]
-
-        if face_id in self.faceid_to_cellid:
-            self.faceid_to_cellid[face_id][1] = cellid
-        else:
-            self.faceid_to_cellid[face_id] = [cellid, -1]
-
-    def _process_cells(
-        self,
-        cell_type: str,
-        faces_list_fn: Callable[[List[int]], Tuple[Tuple[int, ...], ...]],
-    ) -> None:
-        """Given a cell type and function for cell faces coordinates,
-        loop over each cell, extract faces
-        and construct owner-neighbor connectivity.
-        Args:
-            cell_type (str): CellType.Hex, CellType.Tetra or CellType.Wedge
-            faces_list_fn (Callable): a function that returns a list of faces
-                                      (list of points labels)for the type of cell given.
-        """
-        cells = self.mesh.get_cells_type(cell_type)
-
-        if cells.size == 0:
-            # mesh has no cells with the given type, nothing to do here
-            return
-
-        for cell in cells:
-            faces = faces_list_fn(cell)
-            for face in faces:
-                # have we met `face` before?
-                if not self._face_exists(face):
-                    self._add_face(face)
-
-                # link the face to the cell who owns it
-                self._link_face_to_cell(face, self.current_cellid)
-
-            self.current_cellid += 1
+                self.current_cellid += 1

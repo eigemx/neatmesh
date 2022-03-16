@@ -10,30 +10,12 @@ def hex_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         List[List]: list of list of faces points labels
     """
     return (
-        (cell[0], cell[3], cell[2], cell[1]),
-        (cell[4], cell[5], cell[6], cell[7]),
-        (cell[0], cell[1], cell[5], cell[4]),
-        (cell[2], cell[3], cell[7], cell[6]),
-        (cell[0], cell[4], cell[7], cell[3]),
         (cell[1], cell[2], cell[6], cell[5]),
-    )
-
-
-def hex20_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 6 faces of a hexahedron cell,
-    using meshio nodes ordering for hexahedron20 and hexahedron24
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[0], cell[11], cell[3], cell[10], cell[2], cell[9], cell[1], cell[8]),
-        (cell[4], cell[12], cell[5], cell[13], cell[6], cell[14], cell[7], cell[15]),
-        (cell[0], cell[8], cell[1], cell[17], cell[5], cell[12], cell[4], cell[16]),
-        (cell[2], cell[10], cell[3], cell[19], cell[7], cell[14], cell[6], cell[18]),
-        (cell[0], cell[16], cell[4], cell[15], cell[7], cell[19], cell[3], cell[11]),
-        (cell[1], cell[9], cell[2], cell[18], cell[6], cell[13], cell[5], cell[17]),
+        (cell[0], cell[4], cell[7], cell[3]),
+        (cell[3], cell[7], cell[6], cell[2]),
+        (cell[0], cell[1], cell[5], cell[4]),
+        (cell[4], cell[5], cell[6], cell[7]),
+        (cell[0], cell[3], cell[2], cell[1]),
     )
 
 
@@ -46,28 +28,11 @@ def wedge_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         List[List]: list of list of faces points labels
     """
     return (
-        (cell[0], cell[2], cell[1]),
-        (cell[3], cell[4], cell[5]),
+        (cell[0], cell[2], cell[1], -1),
+        (cell[3], cell[4], cell[5], -1),
         (cell[3], cell[0], cell[1], cell[4]),
         (cell[0], cell[3], cell[5], cell[2]),
         (cell[1], cell[2], cell[5], cell[4]),
-    )
-
-
-def wedge12_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 5 faces of a wedge cell,
-    using meshio nodes ordering for wedge12 and wedge15
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[0], cell[8], cell[2], cell[7], cell[1], cell[6]),
-        (cell[3], cell[9], cell[4], cell[10], cell[5], cell[11]),
-        (cell[3], cell[0], cell[6], cell[1], cell[4], cell[9]),
-        (cell[0], cell[3], cell[11], cell[5], cell[2], cell[8]),
-        (cell[1], cell[7], cell[2], cell[5], cell[10], cell[4]),
     )
 
 
@@ -80,26 +45,10 @@ def tetra_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         List[List]: list of list of faces points labels
     """
     return (
-        (cell[0], cell[2], cell[1]),
-        (cell[1], cell[2], cell[3]),
-        (cell[0], cell[1], cell[3]),
-        (cell[0], cell[3], cell[2]),
-    )
-
-
-def tetra10_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 4 faces of a tetrahedral cell,
-    using meshio nodes ordering for tetra10
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[0], cell[6], cell[2], cell[5], cell[1], cell[4]),
-        (cell[1], cell[5], cell[2], cell[9], cell[3], cell[8]),
-        (cell[0], cell[4], cell[1], cell[8], cell[3], cell[7]),
-        (cell[0], cell[7], cell[3], cell[9], cell[2], cell[6]),
+        (cell[0], cell[2], cell[1], -1),
+        (cell[1], cell[2], cell[3], -1),
+        (cell[0], cell[1], cell[3], -1),
+        (cell[0], cell[3], cell[2], -1),
     )
 
 
@@ -113,25 +62,9 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
     """
     return (
         (cell[2], cell[1], cell[0], cell[3]),
-        (cell[2], cell[3], cell[4]),
-        (cell[1], cell[4], cell[0]),
-        (cell[3], cell[0], cell[4]),
-    )
-
-
-def pyramid13_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 4 faces of a tetrahedral cell,
-    using meshio nodes ordering for pyramid13 and pyramid14
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[2], cell[6], cell[1], cell[5], cell[0], cell[8], cell[3], cell[7]),
-        (cell[2], cell[7], cell[3], cell[12], cell[4], cell[11]),
-        (cell[1], cell[10], cell[4], cell[9], cell[0], cell[5]),
-        (cell[3], cell[8], cell[0], cell[9], cell[4], cell[12]),
+        (cell[2], cell[3], cell[4], -1),
+        (cell[1], cell[4], cell[0], -1),
+        (cell[3], cell[0], cell[4], -1),
     )
 
 
@@ -167,37 +100,54 @@ meshio_3d: Final = {
     "pyramid14",
 }
 
+meshio_type_to_alpha: Final = {
+    "vertex": "vertex",
+    "line": "line",
+    "line": "line3",
+    "triangle": "triangle",
+    "triangle6": "triangle",
+    "triangle7": "triangle",
+    "quad": "quad",
+    "quad8": "quad",
+    "quad9": "quad",
+    "tetra": "tetra",
+    "tetra10": "tetra",
+    "hexahedron": "hexahedron",
+    "hexahedron20": "hexahedron",
+    "hexahedron24": "hexahedron",
+    "hexahedron27": "hexahedron",
+    "wedge": "wedge",
+    "wedge12": "wedge",
+    "wedge15": "wedge",
+    "pyramid": "pyramid",
+    "pyramid13": "pyramid",
+    "pyramid14": "pyramid",
+}
+
 meshio_2d: Final = {
     "triangle",
     "quad",
 }
 
-cell_type_to_faces_func: Final = {
-    MeshIOCellType.Hex: hex_cell_faces,
-    MeshIOCellType.Hex20: hex20_cell_faces,
-    MeshIOCellType.Hex24: hex20_cell_faces,
-    MeshIOCellType.Hex27: hex20_cell_faces,
-    MeshIOCellType.Tetra: tetra_cell_faces,
-    MeshIOCellType.Tetra10: tetra10_cell_faces,
-    MeshIOCellType.Wedge: wedge_cell_faces,
-    # MeshIOCellType.Wedge12: wedge12_cell_faces,   #TODO: decide what to do with this
-    MeshIOCellType.Wedge15: wedge12_cell_faces,
-    MeshIOCellType.Pyramid: pyramid_cell_faces,
-    MeshIOCellType.Pyramid13: pyramid13_cell_faces,
-    MeshIOCellType.Pyramid14: pyramid13_cell_faces,
+meshio_1d: Final = {
+    "vertex",
+    "line",
+    "line3",
 }
 
-
-def alphabetic_cell_type(cell_type: str) -> str:
-    """Return meshio cell type without numerical postfix"""
-    return "".join(ch for ch in cell_type if ch.isalpha())
+cell_type_to_faces_func: Final = {
+    MeshIOCellType.Hex: hex_cell_faces,
+    MeshIOCellType.Tetra: tetra_cell_faces,
+    MeshIOCellType.Wedge: wedge_cell_faces,
+    MeshIOCellType.Pyramid: pyramid_cell_faces,
+}
 
 
 def is_3d(mesh: Mesh) -> bool:
     """Check if a meshio mesh is 3-dimensional"""
     for cell_block in mesh.cells:
         # first 3D element type is enough.
-        if alphabetic_cell_type(cell_block.type) in meshio_3d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_3d:
             return True
     return False
 
@@ -208,6 +158,6 @@ def is_2d(mesh: Mesh) -> bool:
         return False
 
     for cell_block in mesh.cells:
-        if alphabetic_cell_type(cell_block.type) in meshio_2d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_2d:
             return True
     return False
