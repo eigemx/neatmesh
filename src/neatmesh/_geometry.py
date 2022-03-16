@@ -69,7 +69,7 @@ def quad_data_from_tensor(faces_tensor: np.ndarray):
         quad_edges_norms, axis=0
     )
 
-    return quad_centroids, quad_normals, quad_areas, quad_aspect_ratios
+    return quad_centroids, quad_normals, quad_areas.flatten(), quad_aspect_ratios
 
 
 def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):

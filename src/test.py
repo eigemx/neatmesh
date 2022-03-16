@@ -103,7 +103,7 @@ if __name__ == "__main__":
     console = Console()
 
     with console.status("Reading mesh..."):
-        mesh = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
+        mesh = MeshReader3D("./neatmesh/test_meshes/tetra_wedge.med")
     report_elements_count(console, mesh)
 
     with console.status("Collecting cell types.."):
@@ -129,12 +129,4 @@ if __name__ == "__main__":
     for point in q.bounding_box():
         rprint(point)
 
-'''reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
-q = QualityInspector3D(reader)
-print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
-print('Aspect ratio: ', 
-      np.max(q.face_aspect_ratios), np.mean(q.face_aspect_ratios), np.min(q.face_aspect_ratios))
-print('Area: ', 
-      np.max(q.face_areas), np.mean(q.face_areas), np.min(q.face_areas))
-
-'''
+    print(q.check_non_ortho())
