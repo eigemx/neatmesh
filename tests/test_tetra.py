@@ -1,5 +1,7 @@
 import numpy as np
 from neatmesh._geometry import tetra_data_from_tensor, tri_data_from_tensor
+from neatmesh._quality import QualityInspector3D
+from neatmesh._reader import MeshReader3D
 
 
 points = np.array(
@@ -11,7 +13,7 @@ points = np.array(
         ]
     )    
 
-def test_tetra():
+def test_tetra_one_cell():
     cells = [3, 0, 1, 2]
     tetra_cell_tensor = np.array([
         [points[i] for i in cells],
@@ -21,6 +23,7 @@ def test_tetra():
     center, volume = tetra_data_from_tensor(tetra_cell_tensor)
     assert np.allclose(center[0, :], center[1, :])
     assert np.allclose(volume[0], volume[1])
+    print(center)
 
 
 def test_tri():
@@ -42,3 +45,12 @@ def test_tri():
             [0.33333, 0.0, 0.33333]
         ]
     )
+
+
+def test_tetra_mesh():
+    mesh = MeshReader3D('./neatmesh/test_meshes/fine_cylinder.med')
+    q =QualityInspector3D(mesh)
+    q.calc_cell_types_counts()
+    q._calc_cell_data_tetra()
+    assert(np.allclose(np.sum(q.tetra_vols), [3.14061]))
+
