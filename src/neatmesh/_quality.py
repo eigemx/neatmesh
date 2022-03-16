@@ -36,16 +36,7 @@ class QualityInspector3D:
 
     def _calc_face_data_tri(self):
         tri_faces = self.faces[self.faces[:, -1] == -1][:, :-1]
-        n_faces = tri_faces.shape[0]
-
-        tri_faces_tensor = np.zeros(shape=(n_faces, 3, 3))
-
-        for i in range(n_faces):
-            tri_faces_tensor[i] = [
-                self.points[tri_faces[i][0]],
-                self.points[tri_faces[i][1]],
-                self.points[tri_faces[i][2]],
-            ]
+        tri_faces_tensor = np.take(self.points, tri_faces, axis=0)[:, 0:3, :]
 
         (
             self.tri_centers,
@@ -55,19 +46,9 @@ class QualityInspector3D:
         ) = tri_data_from_tensor(tri_faces_tensor)
 
     def _calc_face_data_quad(self):
-        # Danger: this will mix up between hex quads and wedge/pyramid quads
         quad_faces = self.faces[self.faces[:, -1] != -1]
-        n_faces = quad_faces.shape[0]
 
-        quad_faces_tensor = np.zeros(shape=(n_faces, 4, 3))
-
-        for i in range(n_faces):
-            quad_faces_tensor[i] = [
-                self.points[quad_faces[i][0]],
-                self.points[quad_faces[i][1]],
-                self.points[quad_faces[i][2]],
-                self.points[quad_faces[i][3]],
-            ]
+        quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
         (
             self.quad_centroids,
             self.quad_normals,
@@ -76,39 +57,19 @@ class QualityInspector3D:
         ) = quad_data_from_tensor(quad_faces_tensor)
 
     def _calc_cell_data_tetra(self):
-        tetra_cells_tensor = np.zeros(shape=(self.tetra_count, 4, 3))
         for cell_block in self.reader.cell_blocks:
             if meshio_type_to_alpha[cell_block.type] == "tetra":
                 cells = cell_block.data
 
-        for i, cell in enumerate(cells):
-            tetra_cells_tensor[i] = (
-                self.points[cell[0]],
-                self.points[cell[1]],
-                self.points[cell[2]],
-                self.points[cell[3]],
-            )
-
+        tetra_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
         self.tetra_centers, self.tetra_vols = tetra_data_from_tensor(tetra_cells_tensor)
 
     def _calc_cell_data_hex(self):
-        hex_cells_tensor = np.zeros(shape=(self.hex_count, 8, 3))
-
         for cell_block in self.reader.cell_blocks:
             if meshio_type_to_alpha[cell_block.type] == "hexahedron":
                 cells = cell_block.data
 
-        for i, cell in enumerate(cells):
-            hex_cells_tensor[i] = (
-                self.points[cell[0]],
-                self.points[cell[1]],
-                self.points[cell[2]],
-                self.points[cell[3]],
-                self.points[cell[4]],
-                self.points[cell[5]],
-                self.points[cell[6]],
-                self.points[cell[7]],
-            )
+        hex_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:8, :]
 
         self.hex_centers, self.hex_vols = hex_data_from_tensor(hex_cells_tensor)
 
@@ -119,33 +80,15 @@ class QualityInspector3D:
             if meshio_type_to_alpha[cell_block.type] == "wedge":
                 cells = cell_block.data
 
-        for i, cell in enumerate(cells):
-            wedge_cells_tensor[i] = (
-                self.points[cell[0]],
-                self.points[cell[1]],
-                self.points[cell[2]],
-                self.points[cell[3]],
-                self.points[cell[4]],
-                self.points[cell[5]],
-            )
-
+        wedge_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:6, :]
         wedge_data_from_tensor(wedge_cells_tensor)
 
     def _calc_cell_data_pyramid(self):
-        pyr_cells_tensor = np.zeros(shape=(self.pyramid_count, 5, 3))
-
         for cell_block in self.reader.cell_blocks:
             if meshio_type_to_alpha[cell_block.type] == "pyramid":
                 cells = cell_block.data
 
-        for i, cell in enumerate(cells):
-            pyr_cells_tensor[i] = (
-                self.points[cell[0]],
-                self.points[cell[1]],
-                self.points[cell[2]],
-                self.points[cell[3]],
-                self.points[cell[4]],
-            )
+        pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
 
         (self.pyramids_centroids, self.pyramids_vol) = pyramid_data_from_tensor(
             pyr_cells_tensor
