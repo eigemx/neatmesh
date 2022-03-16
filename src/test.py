@@ -112,11 +112,11 @@ if __name__ == "__main__":
 
     report_cell_types(console, q)
 
-    with console.status("Calculating face centers, normals, areas and aspect ratio..."):
+    with console.status("Analyzing faces..."):
         q.analyze_faces()
     report_face_types(console, q.n_quad, q.n_tri)
 
-    with console.status("Calculating cell centers and volumes..."):
+    with console.status("Analyzing cells..."):
         q.analyze_cells()
 
     '''print("Checking non-orthogonality...\n")
