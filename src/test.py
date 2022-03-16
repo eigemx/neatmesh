@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-
+'''
 def report_elements_count(console: Console, reader: MeshReader3D) -> None:
     cell_count = reader.n_cells
     face_count = len(reader.faces_set)
@@ -129,3 +129,16 @@ if __name__ == "__main__":
     rprint("Mesh bounding box: ")
     for point in q.mesh_bounding_box():
         rprint(point)
+'''
+reader = MeshReader3D("./neatmesh/test_meshes/fine_cylinder.med")
+q = QualityInspector3D(reader)
+q.calc_cell_types_counts()
+
+print(q.hex_count, q.tetra_count, q.wedge_count, q.pyramid_count)
+q._calc_face_data_tri()
+q._calc_cell_data_tetra()
+print('Aspect ratio: ', 
+      np.max(q.tri_aspect_ratios), np.mean(q.tri_aspect_ratios), np.min(q.tri_aspect_ratios))
+print('Area: ', 
+      np.max(q.tri_areas), np.mean(q.tri_areas), np.min(q.tri_areas))
+
