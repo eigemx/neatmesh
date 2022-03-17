@@ -106,7 +106,7 @@ def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
         axis=1
     )
         
-    pyramids_vol = (1.0 / 3.0) * quad_areas.flatten() * pyramids_heights
+    pyramids_vol = (1.0 / 3.0) * quad_areas.flatten() * np.abs(pyramids_heights)
     pyramids_centroids = (0.75 * quad_centroids) + (0.25 * pyramids_apex)
 
     return pyramids_centroids, pyramids_vol
