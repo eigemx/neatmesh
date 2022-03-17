@@ -1,8 +1,8 @@
 import numpy as np
 
-from ._common import meshio_type_to_alpha
-from ._reader import MeshReader3D
-from ._geometry import *
+from .common import meshio_type_to_alpha
+from .reader import MeshReader3D
+from .geometry import *
 
 
 class QualityInspector3D:

@@ -2,8 +2,8 @@ from typing import Dict, FrozenSet, List, Set, Tuple
 
 from meshio import ReadError, read
 
-from ._common import *
-from ._exceptions import InvalidMeshException, NonSupportedElement
+from .common import *
+from .exceptions import InvalidMeshException, NonSupportedElement
 
 
 # TODO: check if mesh exists before calling MeshReader3D

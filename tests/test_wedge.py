@@ -1,5 +1,5 @@
 import numpy as np
-from neatmesh._geometry import wedge_data_from_tensor
+from neatmesh.geometry import wedge_data_from_tensor
 
 
 points = np.array(
