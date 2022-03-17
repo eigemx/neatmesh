@@ -1,3 +1,4 @@
+import sys
 from typing import Tuple
 
 from neatmesh._reader import MeshReader3D
@@ -89,7 +90,7 @@ def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
     
     
 
-if __name__ == "__main__":
+def main():
     print(
         f"""
                      __                      __  
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     console = Console()
 
     with console.status("Reading mesh..."):
-        mesh = MeshReader3D("./neatmesh/test_meshes/tetra_wedge.med")
+        mesh = MeshReader3D(sys.argv[1])
     report_elements_count(console, mesh)
 
     with console.status("Collecting cell types.."):
