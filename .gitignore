@@ -2,6 +2,7 @@ __pycache__/
 .mypy_cache/
 .vscode/
 .pytest_cache/
+.tox/
 
 # Distribution / packaging
 .Python
