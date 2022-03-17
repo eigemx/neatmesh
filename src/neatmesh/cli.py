@@ -1,8 +1,8 @@
 import sys
 from typing import Tuple
 
-from neatmesh._reader import MeshReader3D
-from neatmesh._quality import QualityInspector3D
+from neatmesh.reader import MeshReader3D
+from neatmesh.quality import QualityInspector3D
 
 import numpy as np
 

@@ -1,7 +1,7 @@
 import numpy as np
-from neatmesh._geometry import tetra_data_from_tensor, tri_data_from_tensor
-from neatmesh._quality import QualityInspector3D
-from neatmesh._reader import MeshReader3D
+from neatmesh.geometry import tetra_data_from_tensor, tri_data_from_tensor
+from neatmesh.quality import QualityInspector3D
+from neatmesh.reader import MeshReader3D
 
 
 points = np.array(

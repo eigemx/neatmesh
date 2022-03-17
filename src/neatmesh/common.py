@@ -1,4 +1,4 @@
-from typing import List, Tuple, Final
+from typing import Final
 from meshio import Mesh
 
 
