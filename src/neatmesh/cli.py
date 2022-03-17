@@ -72,7 +72,7 @@ def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
         "Face Area": q.face_areas,
         "Face Aspect Ratio": q.face_aspect_ratios,
         "Cell Volume": q.cells_volumes,
-        #"Non-Orthogonality": q.non_ortho 
+        "Non-Orthogonality": q.non_ortho 
     }
     
     stats_table = Table(title="Mesh Statistics", box=box.SIMPLE)
@@ -88,20 +88,21 @@ def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
     
     console.print(stats_table)
     
-    
-
-def main():
-    print(
-        f"""
+def header_str(version: str):
+    return f"""
                      __                      __  
    ____  ___  ____ _/ /_____ ___  ___  _____/ /_    |   
-  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   |   Version: 0.1b
+  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   |   Version: {version}
  / / / /  __/ /_/ / /_/ / / / / /  __(__  ) / / /   |   License: MIT
 /_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/    |   
                                                  
 """
-    )
+
+
+def main():
+    
     console = Console()
+    print(header_str('0.1b'))
 
     with console.status("Reading mesh..."):
         mesh = MeshReader3D(sys.argv[1])
@@ -120,8 +121,8 @@ def main():
     with console.status("Analyzing cells..."):
         q.analyze_cells()
 
-    '''print("Checking non-orthogonality...\n")
-    q.calc_faces_nonortho()'''
+    with console.status("Checking non-orthogonality...\n"):
+        q.check_non_ortho()
 
     report_mesh_stats(console, q)
 
@@ -129,5 +130,3 @@ def main():
     rprint("Mesh bounding box: ")
     for point in q.bounding_box():
         rprint(point)
-
-    print(q.check_non_ortho())
