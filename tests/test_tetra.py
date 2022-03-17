@@ -48,7 +48,7 @@ def test_tri():
 
 
 def test_tetra_mesh():
-    mesh = MeshReader3D('./test_meshes/fine_cylinder.med')
+    mesh = MeshReader3D('./meshes/fine_cylinder.med')
     q =QualityInspector3D(mesh)
     q.count_cell_types()
     q.analyze_cells()
