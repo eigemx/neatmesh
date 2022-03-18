@@ -11,133 +11,178 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
-from neatmesh.quality import QualityInspector3D
+from neatmesh.analyzer import Analyzer3D
 from neatmesh.reader import MeshReader3D
 
 
-def report_elements_count(
-    console: Console, reader: MeshReader3D, q: QualityInspector3D
-) -> None:
-    cell_count = reader.n_cells
-    face_count = len(reader.faces_set)
-    point_count = reader.n_points
+class Reporter:
+    def __init__(self, analyzer: Analyzer3D, console: Console) -> None:
+        self.analyzer = analyzer
+        self.console = console
 
-    rprint()
-    tree = Tree("Elements Statistics")
+    def report_elements_count(self):
+        cell_count = self.analyzer.n_cells
+        face_count = self.analyzer.n_faces
+        point_count = self.analyzer.n_points
 
-    tree.add(f"Points count = {point_count} point", highlight=True)
-    faces_branch = tree.add(
-        f"Faces count  = {face_count} face, with {q.n_boundary_faces} boundary faces"
-    )
+        tree = Tree(label="[yellow bold]Elements Stats.")
+        duplicate_nodes = self.analyzer.duplicate_nodes_count()
 
-    if q.n_quad > 0:
-        quad_pct = (q.n_quad / q.n_faces) * 100
-        faces_branch.add(f"Quadilaterals: {q.n_quad} ({quad_pct:.1f}%)")
-    if q.n_tri > 0:
-        tri_pct = (q.n_tri / q.n_faces) * 100
-        faces_branch.add(f"Triangles: {q.n_tri} ({tri_pct:.1f}%)")
-
-    cells_branch = tree.add(f"Cells count = {cell_count} cell")
-    for ctype, count in (
-        ("Hexahedron", q.hex_count),
-        ("Tetrahedron", q.tetra_count),
-        ("Wedge", q.wedge_count),
-        ("Pyramid", q.pyramid_count),
-    ):
-        if count == 0:
-            continue
-
-        pct = (count / q.n_cells) * 100
-        cells_branch.add(f"{ctype}s: {count} ({pct:.1f}%)")
-
-    console.print(tree)
-    console.print()
-
-
-def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
-    arr_max = np.nanmax(array)
-    arr_min = np.nanmin(array)
-    arr_mean = np.nanmean(array)
-    arr_std = np.nanstd(array)
-
-    return arr_max, arr_min, arr_mean, arr_std
-
-
-def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
-    stats = {
-        "Face Area": q.face_areas,
-        "Face Aspect Ratio": q.face_aspect_ratios,
-        "Cell Volume": q.cells_volumes,
-        "Non-Orthogonality": q.non_ortho,
-        "Adjacent Cells Volume Ratio": q.adj_ratio,
-    }
-
-    stats_table = Table(box=box.SIMPLE)
-    stats_table.add_column("", justify="left", style="magenta")
-    stats_table.add_column("Max.", justify="right")
-    stats_table.add_column("Min.", justify="right")
-    stats_table.add_column("Mean.", justify="right")
-    stats_table.add_column("Std.", justify="right")
-
-    for stat, array in stats.items():
-        _max, _min, _mean, _std = stats_from_array(array)
-        stats_table.add_row(
-            stat, f"{_max:.6f}", f"{_min:.6f}", f"{_mean:.6f}", f"{_std:.6f}"
+        points_branch = tree.add(f"Points count = {point_count}", highlight=True)
+        duplicate_nodes_status = (
+            "[green](Ok)" if duplicate_nodes == 0 else "[red](Error)"
+        )
+        points_branch.add(
+            f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_status}"
+        )
+        faces_branch = tree.add(
+            f"Faces count = {face_count}, with {self.analyzer.n_boundary_faces} boundary faces"
         )
 
-    panel = Panel(stats_table, title="Quality Statistics", title_align="left")
-    console.print(panel)
-    console.print()
+        if self.analyzer.n_quad > 0:
+            quad_pct = (self.analyzer.n_quad / self.analyzer.n_faces) * 100
+            faces_branch.add(f"Quadilaterals: {self.analyzer.n_quad} ({quad_pct:.1f}%)")
+        if self.analyzer.n_tri > 0:
+            tri_pct = (self.analyzer.n_tri / self.analyzer.n_faces) * 100
+            faces_branch.add(f"Triangles: {self.analyzer.n_tri} ({tri_pct:.1f}%)")
 
-def report_file_stats(filename: str):
-    fsize = humanize.naturalsize(os.path.getsize(filename))
-    rprint(f"Filename: {filename} ({fsize})")
+        cells_branch = tree.add(f"Cells count = {cell_count}")
+        for ctype, count in (
+            ("Hexahedron", self.analyzer.hex_count),
+            ("Tetrahedron", self.analyzer.tetra_count),
+            ("Wedge", self.analyzer.wedge_count),
+            ("Pyramid", self.analyzer.pyramid_count),
+        ):
+            if count == 0:
+                continue
+
+            pct = (count / self.analyzer.n_cells) * 100
+            cells_branch.add(f"{ctype}s: {count} ({pct:.1f}%)")
+
+        self.console.print(tree)
+
+    @staticmethod
+    def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
+        arr_max = np.nanmax(array)
+        arr_min = np.nanmin(array)
+        arr_mean = np.nanmean(array)
+        arr_std = np.nanstd(array)
+
+        return arr_max, arr_min, arr_mean, arr_std
+
+    def report_mesh_stats(self) -> Panel:
+        self.console.print()
+
+        stats = {
+            "Face Area": {
+                "array": self.analyzer.face_areas,
+                "sci_not": True,
+            },
+            "Face Aspect Ratio": {
+                "array": self.analyzer.face_aspect_ratios,
+                "sci_not": False,
+                "max": 15.0,
+            },
+            "Cell Volume": {"array": self.analyzer.cells_volumes, "sci_not": True},
+            "Non-Orthogonality": {
+                "array": self.analyzer.non_ortho,
+                "sci_not": False,
+                "max": 50,
+            },
+            "Adjacent Cells Volume Ratio": {
+                "array": self.analyzer.adj_ratio,
+                "sci_not": False,
+                "max": 10,
+            },
+        }
+
+        stats_table = Table(box=box.SIMPLE)
+        stats_table.add_column("", justify="left")
+        stats_table.add_column("Max.", justify="right")
+        stats_table.add_column("Min.", justify="right")
+        stats_table.add_column("Mean.", justify="right")
+        stats_table.add_column("Std.", justify="right")
+        stats_table.add_column("", justify="right")
+
+        for stat, stats_dict in stats.items():
+            _max, _min, _mean, _std = self.stats_from_array(stats_dict["array"])
+            status = ""
+
+            if "max" in stats_dict:
+                status = "[red]Not good" if _max > stats_dict["max"] else "[green]Ok"
+
+            if _max > 1e-4 or not stats_dict["sci_not"]:
+                stats_table.add_row(
+                    stat,
+                    f"{_max:.4f}",
+                    f"{_min:.4f}",
+                    f"{_mean:.4f}",
+                    f"{_std:.4f}",
+                    status,
+                )
+            else:
+                stats_table.add_row(
+                    stat, f"{_max:4e}", f"{_min:.4e}", f"{_mean:.4e}", f"{_std:.4e}"
+                )
+
+        panel = Panel(
+            stats_table, title="[yellow bold]Quality Stats.", title_align="left", expand=False
+        )
+
+        self.console.print(panel)
+
+    def report_file_size(self, filename: str):
+        fsize = humanize.naturalsize(os.path.getsize(filename))
+        self.console.print(f"Inspecting file [cyan]'{filename}'[/] (file size: {fsize})")
+        self.console.print()
+
+    def report_bounding_box(self):
+        self.console.print("[yellow bold]Mesh bounding box: ")
+        for point in self.analyzer.bounding_box():
+            rprint(f"\t{point}")
+        self.console.print()
 
 
 def header_str(version: str):
     return f"""
-                     __                      __  
-   ____  ___  ____ _/ /_____ ___  ___  _____/ /_     
+                     __                      __
+   ____  ___  ____ _/ /_____ ___  ___  _____/ /_
   / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   Version: {version}
  / / / /  __/ /_/ / /_/ / / / / /  __(__  ) / / /   License: MIT
-/_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/                                                  
+/_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/
+
 """
 
 
 def main():
+    print(
+        header_str("0.0.1b"),
+    )
 
-    console = Console()
     filename = sys.argv[1]
-
-    report_file_stats(filename)
-
+    console = Console()
 
     with console.status("Reading mesh..."):
         mesh = MeshReader3D(filename)
 
     with console.status("Collecting cell types.."):
-        q = QualityInspector3D(mesh)
-        q.count_cell_types()
+        analyzer = Analyzer3D(mesh)
+        analyzer.count_cell_types()
 
     with console.status("Analyzing faces..."):
-        q.analyze_faces()
+        analyzer.analyze_faces()
 
     with console.status("Analyzing cells..."):
-        q.analyze_cells()
+        analyzer.analyze_cells()
 
     with console.status("Checking non-orthogonality..."):
-        q.check_non_ortho()
-    
+        analyzer.check_non_ortho()
+
     with console.status("Checking adjacent cells volume ratio..."):
-        q.check_adjacents_volume_ratio()
-    
+        analyzer.check_adjacents_volume_ratio()
 
-    report_elements_count(console, mesh, q)
-
-    report_mesh_stats(console, q)
-
-    rprint("Count of duplicate nodes = ", q.duplicate_nodes_count())
-    rprint("Mesh bounding box: ")
-    for point in q.bounding_box():
-        rprint(point)
-
+    reporter = Reporter(analyzer, console)
+    reporter.report_file_size(filename)
+    reporter.report_bounding_box()
+    reporter.report_elements_count()
+    reporter.report_mesh_stats()

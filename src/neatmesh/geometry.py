@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 from numpy.linalg import det, norm
 
@@ -74,7 +72,6 @@ def quad_data_from_tensor(faces_tensor: np.ndarray):
 
 
 def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):
-    # TODO: Shoudln't this be axis=1?
     tetra_centers = np.mean(tetra_cells_tensor, axis=1)
     tetra_vols = (
         np.abs(

@@ -3,7 +3,7 @@ import pathlib
 import numpy as np
 
 from neatmesh.geometry import tetra_data_from_tensor, tri_data_from_tensor
-from neatmesh.quality import QualityInspector3D
+from neatmesh.analyzer import Analyzer3D
 from neatmesh.reader import MeshReader3D
 
 this_dir = pathlib.Path(__file__).resolve().parent
@@ -44,7 +44,7 @@ def test_tri():
 
 def test_tetra_mesh():
     mesh = MeshReader3D(this_dir / "meshes" / "fine_cylinder.med")
-    q = QualityInspector3D(mesh)
+    q = Analyzer3D(mesh)
     q.count_cell_types()
     q.analyze_cells()
     assert np.allclose(np.sum(q.cells_volumes), [3.14061])
