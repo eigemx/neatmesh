@@ -23,7 +23,7 @@ def report_elements_count(
     point_count = reader.n_points
 
     rprint()
-    tree = Tree("Mesh elements")
+    tree = Tree("Elements Statistics")
 
     tree.add(f"Points count = {point_count} point", highlight=True)
     faces_branch = tree.add(
@@ -50,7 +50,8 @@ def report_elements_count(
         pct = (count / q.n_cells) * 100
         cells_branch.add(f"{ctype}s: {count} ({pct:.1f}%)")
 
-    rprint(tree)
+    console.print(tree)
+    console.print()
 
 
 def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
@@ -68,9 +69,10 @@ def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
         "Face Aspect Ratio": q.face_aspect_ratios,
         "Cell Volume": q.cells_volumes,
         "Non-Orthogonality": q.non_ortho,
+        "Adjacent Cells Volume Ratio": q.adj_ratio,
     }
 
-    stats_table = Table(title="Mesh Statistics", box=box.SIMPLE)
+    stats_table = Table(box=box.SIMPLE)
     stats_table.add_column("", justify="left", style="magenta")
     stats_table.add_column("Max.", justify="right")
     stats_table.add_column("Min.", justify="right")
@@ -83,8 +85,9 @@ def report_mesh_stats(console: Console, q: QualityInspector3D) -> None:
             stat, f"{_max:.6f}", f"{_min:.6f}", f"{_mean:.6f}", f"{_std:.6f}"
         )
 
-    console.print(stats_table)
-
+    panel = Panel(stats_table, title="Quality Statistics", title_align="left")
+    console.print(panel)
+    console.print()
 
 def report_file_stats(filename: str):
     fsize = humanize.naturalsize(os.path.getsize(filename))
@@ -108,6 +111,7 @@ def main():
 
     report_file_stats(filename)
 
+
     with console.status("Reading mesh..."):
         mesh = MeshReader3D(filename)
 
@@ -121,8 +125,12 @@ def main():
     with console.status("Analyzing cells..."):
         q.analyze_cells()
 
-    with console.status("Checking non-orthogonality...\n"):
+    with console.status("Checking non-orthogonality..."):
         q.check_non_ortho()
+    
+    with console.status("Checking adjacent cells volume ratio..."):
+        q.check_adjacents_volume_ratio()
+    
 
     report_elements_count(console, mesh, q)
 
@@ -132,3 +140,4 @@ def main():
     rprint("Mesh bounding box: ")
     for point in q.bounding_box():
         rprint(point)
+

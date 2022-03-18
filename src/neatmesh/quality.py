@@ -128,11 +128,13 @@ class QualityInspector3D:
     def check_non_ortho(self) -> None:
         owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
         interior_faces_mask = owner_neighbor[:, 1] != -1
-        interior_faces = owner_neighbor[interior_faces_mask]
+        
+        # We will need interior_faces later in adjacent cells volume ratio
+        self.interior_faces = owner_neighbor[interior_faces_mask]
 
-        self.n_boundary_faces = self.n_faces - interior_faces.shape[0]
+        self.n_boundary_faces = self.n_faces - self.interior_faces.shape[0]
 
-        owners, neighbors = interior_faces[:, 0], interior_faces[:, 1]
+        owners, neighbors = self.interior_faces[:, 0], self.interior_faces[:, 1]
         owner_centers = np.take(self.cells_centers, owners, axis=0)
         neighbor_centers = np.take(self.cells_centers, neighbors, axis=0)
 
@@ -144,3 +146,13 @@ class QualityInspector3D:
 
         costheta = dot(ef, sf)
         self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
+
+    def check_adjacents_volume_ratio(self) -> None:
+        adjacent_cells_vol = np.take(self.cells_volumes, self.interior_faces, axis=0)
+        self.adj_ratio = np.max(
+            [
+                adjacent_cells_vol[:,0] / adjacent_cells_vol[:,1],
+                adjacent_cells_vol[:,1] / adjacent_cells_vol[:,0] ,
+            ],
+            axis=0
+        )
