@@ -1,6 +1,6 @@
 from typing import Final
-from meshio import Mesh
 
+from meshio import Mesh
 
 meshio_3d: Final = {
     "tetra",

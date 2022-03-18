@@ -155,6 +155,7 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
         (cell[3], cell[0], cell[4], -1),
     )
 
+
 cell_type_to_faces_func: Final = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
