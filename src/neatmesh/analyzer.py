@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 from .common import meshio_type_to_alpha
@@ -5,7 +7,7 @@ from .geometry import *
 from .reader import MeshReader3D
 
 
-class QualityInspector3D:
+class Analyzer3D:
     def __init__(self, reader: MeshReader3D) -> None:
         self.reader = reader
 
@@ -23,6 +25,7 @@ class QualityInspector3D:
     def bounding_box(self) -> Tuple:
         x_min, y_min, z_min = np.min(self.points, axis=0)
         x_max, y_max, z_max = np.max(self.points, axis=0)
+    
         return (
             (x_min, y_min, z_min),
             (x_max, y_max, z_max),
@@ -92,8 +95,8 @@ class QualityInspector3D:
             self.n_quad += len(quad_faces)
 
     def analyze_cells(self) -> None:
-        self.cells_centers = np.array([]).reshape(0, 3)
-        self.cells_volumes = np.array([])
+        self.cells_centers: np.ndarray = np.array([]).reshape(0, 3)
+        self.cells_volumes: np.ndarray = np.array([])
 
         cell_type_handler_map = {
             "hexahedron": self.analyze_hex_cells,
@@ -128,7 +131,7 @@ class QualityInspector3D:
     def check_non_ortho(self) -> None:
         owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
         interior_faces_mask = owner_neighbor[:, 1] != -1
-        
+
         # We will need interior_faces later in adjacent cells volume ratio
         self.interior_faces = owner_neighbor[interior_faces_mask]
 
@@ -151,8 +154,8 @@ class QualityInspector3D:
         adjacent_cells_vol = np.take(self.cells_volumes, self.interior_faces, axis=0)
         self.adj_ratio = np.max(
             [
-                adjacent_cells_vol[:,0] / adjacent_cells_vol[:,1],
-                adjacent_cells_vol[:,1] / adjacent_cells_vol[:,0] ,
+                adjacent_cells_vol[:, 0] / adjacent_cells_vol[:, 1],
+                adjacent_cells_vol[:, 1] / adjacent_cells_vol[:, 0],
             ],
-            axis=0
+            axis=0,
         )
