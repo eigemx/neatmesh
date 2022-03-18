@@ -1,8 +1,8 @@
 import numpy as np
 
 from .common import meshio_type_to_alpha
-from .reader import MeshReader3D
 from .geometry import *
+from .reader import MeshReader3D
 
 
 class QualityInspector3D:
@@ -76,7 +76,7 @@ class QualityInspector3D:
                 self.face_areas[self.tri_mask],
                 self.face_aspect_ratios[self.tri_mask],
             ) = tri_data_from_tensor(tri_faces_tensor)
-            self.n_tri += len(self.tri_mask)
+            self.n_tri += len(tri_faces)
 
         if self.has_quad:
             self.quad_mask = self.faces[:, -1] != -1
@@ -89,7 +89,7 @@ class QualityInspector3D:
                 self.face_areas[self.quad_mask],
                 self.face_aspect_ratios[self.quad_mask],
             ) = quad_data_from_tensor(quad_faces_tensor)
-            self.n_quad += len(self.quad_mask)
+            self.n_quad += len(quad_faces)
 
     def analyze_cells(self) -> None:
         self.cells_centers = np.array([]).reshape(0, 3)
@@ -106,14 +106,8 @@ class QualityInspector3D:
             ctype = meshio_type_to_alpha[cell_block.type]
             handler = cell_type_handler_map[ctype]
             centers, vols = handler(cell_block.data)
-            self.cells_centers = np.concatenate(
-                [self.cells_centers, centers],
-                axis=0
-            )
-            self.cells_volumes = np.concatenate(
-                [self.cells_volumes, vols],
-                axis=0
-            )
+            self.cells_centers = np.concatenate([self.cells_centers, centers], axis=0)
+            self.cells_volumes = np.concatenate([self.cells_volumes, vols], axis=0)
 
     def analyze_tetra_cells(self, cells):
         tetra_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
@@ -135,16 +129,18 @@ class QualityInspector3D:
         owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
         interior_faces_mask = owner_neighbor[:, 1] != -1
         interior_faces = owner_neighbor[interior_faces_mask]
-        
+
+        self.n_boundary_faces = self.n_faces - interior_faces.shape[0]
+
         owners, neighbors = interior_faces[:, 0], interior_faces[:, 1]
         owner_centers = np.take(self.cells_centers, owners, axis=0)
         neighbor_centers = np.take(self.cells_centers, neighbors, axis=0)
-        
+
         sf = self.face_normals[interior_faces_mask]
         ef = neighbor_centers - owner_centers
-        
+
         dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
         ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
-        
+
         costheta = dot(ef, sf)
         self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
