@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 from numpy.linalg import det, norm
 
@@ -23,29 +25,33 @@ def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
     return tri_centers, tri_normals, tri_areas, tri_aspect_ratios
 
 
-def quad_data_from_tensor(faces_tensor: np.ndarray):
+def quad_data_from_tensor(faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
     # Quads geometrics centers
     gc = np.mean(faces_tensor, axis=1)
 
     # Quad sub-triangles
     edges = ((0, 1), (1, 2), (2, 3), (3, 0))
 
-    sub_triangles_centroids = [None, None, None, None]
-    sub_triangles_normals = [None, None, None, None]
+    sub_triangles_centroids_unswapped = [None, None, None, None]
+    sub_triangles_normals_unswapped = [None, None, None, None]
 
     for i, edge in enumerate(edges):
-        sub_triangles_centroids[i] = np.mean(
+        sub_triangles_centroids_unswapped[i] = np.mean(
             [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]], axis=0
         )
 
-        sub_triangles_normals[i] = np.cross(
+        sub_triangles_normals_unswapped[i] = np.cross(
             gc - faces_tensor[:, edge[0], :],
             faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :],
             axis=1,
         )
 
-    sub_triangles_centroids = np.swapaxes(sub_triangles_centroids, 0, 1)
-    sub_triangles_normals = np.swapaxes(sub_triangles_normals, 0, 1)
+    sub_triangles_centroids = np.swapaxes(
+        np.asarray(sub_triangles_centroids_unswapped), 0, 1
+    )
+    sub_triangles_normals = np.swapaxes(
+        np.asarray(sub_triangles_normals_unswapped), 0, 1
+    )
 
     sub_triangles_areas = norm(sub_triangles_normals, axis=2) / 2.0
     area_weighted_centroids = (
