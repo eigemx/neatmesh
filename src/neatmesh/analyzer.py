@@ -1,9 +1,17 @@
 from typing import Tuple
 
 import numpy as np
+from numpy.linalg import norm
 
 from .common import meshio_type_to_alpha
-from .geometry import *
+from .geometry import (
+    hex_data_from_tensor,
+    pyramid_data_from_tensor,
+    quad_data_from_tensor,
+    tetra_data_from_tensor,
+    tri_data_from_tensor,
+    wedge_data_from_tensor,
+)
 from .reader import MeshReader3D
 
 
@@ -128,7 +136,7 @@ class Analyzer3D:
         pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
         return pyramid_data_from_tensor(pyr_cells_tensor)
 
-    def check_non_ortho(self) -> None:
+    def analyze_non_ortho(self) -> None:
         owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
         interior_faces_mask = owner_neighbor[:, 1] != -1
 
@@ -150,7 +158,7 @@ class Analyzer3D:
         costheta = dot(ef, sf)
         self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
 
-    def check_adjacents_volume_ratio(self) -> None:
+    def analyze_adjacents_volume_ratio(self) -> None:
         adjacent_cells_vol = np.take(self.cells_volumes, self.interior_faces, axis=0)
         self.adj_ratio = np.max(
             [

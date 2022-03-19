@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from typing import Tuple
 
 import humanize
@@ -13,10 +12,10 @@ from rich.table import Table
 from rich.tree import Tree
 
 from neatmesh.analyzer import Analyzer3D
-from neatmesh.reader import MeshReader3D
+from neatmesh.reader import get_reader, MeshReader2D, MeshReader3D
 
 
-class Reporter:
+class Reporter3D:
     def __init__(self, analyzer: Analyzer3D, console: Console) -> None:
         self.analyzer = analyzer
         self.console = console
@@ -27,9 +26,11 @@ class Reporter:
         point_count = self.analyzer.n_points
 
         tree = Tree(label="[yellow bold]Elements Stats.")
-        duplicate_nodes = self.analyzer.duplicate_nodes_count()
-
+        
+        tree.add("Mesh is 3-Dimensional")
         points_branch = tree.add(f"Points count = {point_count}", highlight=True)
+
+        duplicate_nodes = self.analyzer.duplicate_nodes_count()
         duplicate_nodes_status = (
             "[green](Ok)" if duplicate_nodes == 0 else "[red](Error)"
         )
@@ -71,7 +72,7 @@ class Reporter:
 
         return arr_max, arr_min, arr_mean, arr_std
 
-    def report_mesh_stats(self) -> Panel:
+    def report_mesh_stats(self):
         self.console.print()
 
         stats = {
@@ -106,6 +107,10 @@ class Reporter:
         stats_table.add_column("", justify="right")
 
         for stat, stats_dict in stats.items():
+            # Avoid calling stats_from_array in case input array is empty
+            # this might occur in case of one cell mesh, where analyzer.adj_ratio is empty.
+            if stats_dict["array"].shape[0] == 0:
+                continue
             _max, _min, _mean, _std = self.stats_from_array(stats_dict["array"])
             status = ""
 
@@ -152,15 +157,11 @@ class Reporter:
 def version() -> str:
     try:
         from importlib import metadata
-    except ImportError:
-        try:
-            import importlib_metadata as metadata
-        except ImportError:
-            __version__ = "0.0.0"
-    try:
+
         __version__ = metadata.version("neatmesh")
-    except Exception:
+    except ImportError:
         __version__ = "0.0.0"
+
     return __version__
 
 
@@ -177,6 +178,7 @@ def header_str():
 
 def error(msg: str):
     Console(stderr=True).print(f"[red][bold]Error:[/bold] {msg}[/red]")
+    exit(-1)
 
 
 def main():
@@ -192,12 +194,11 @@ def main():
 
     if not os.path.isfile(filename):
         error(f"file {filename} does not exist!")
-        quit()
 
     console = Console()
 
     with console.status("Reading mesh..."):
-        mesh = MeshReader3D(filename)
+        mesh = get_reader(filename)
 
     with console.status("Collecting cell types.."):
         analyzer = Analyzer3D(mesh)
@@ -210,12 +211,12 @@ def main():
         analyzer.analyze_cells()
 
     with console.status("Checking non-orthogonality..."):
-        analyzer.check_non_ortho()
+        analyzer.analyze_non_ortho()
 
     with console.status("Checking adjacent cells volume ratio..."):
-        analyzer.check_adjacents_volume_ratio()
+        analyzer.analyze_adjacents_volume_ratio()
 
-    reporter = Reporter(analyzer, console)
+    reporter = Reporter3D(analyzer, console)
     reporter.report_file_size(filename)
     reporter.report_bounding_box()
     reporter.report_elements_count()

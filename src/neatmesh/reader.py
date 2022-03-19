@@ -1,48 +1,25 @@
 from typing import Dict, FrozenSet, List, Set, Tuple
 
-from meshio import ReadError, read
+import meshio
 
-from .common import *
+from .common import meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha, is_3d, is_2d
 from .exceptions import InvalidMeshException, NonSupportedElement
 
 
-class MeshReader3D:
-    def __init__(self, mesh_file_path: str) -> None:
-        try:
-            self.mesh = read(mesh_file_path)
-        except ReadError as exception:
-            error = "Could not read mesh file (meshio error).\n"
-            error += f"{exception}"
-            raise InvalidMeshException(error) from exception
+class MeshReader:
+    pass
 
+
+class MeshReader2D(MeshReader):
+    pass
+
+
+class MeshReader3D(MeshReader):
+    def __init__(self, mesh: meshio.Mesh) -> None:
+        self.mesh = mesh
         self.points = self.mesh.points
         self.n_points = len(self.points)
-
-        self._check_mesh()
-        self.process_mesh()
-
-    def _check_mesh(self):
-        self.cell_blocks = []
-        self.n_cells = 0
-
-        for cell_block in self.mesh.cells:
-            ctype = cell_block.type
-            if ctype in meshio_type_to_alpha:
-                ctype = meshio_type_to_alpha[ctype]
-
-            if ctype in meshio_3d and cell_block.data.size > 0:
-                self.cell_blocks.append(cell_block)
-                self.n_cells += len(cell_block.data)
-
-            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
-                raise NonSupportedElement(
-                    f"neatmesh does not support element type: {cell_block.type}"
-                )
-
-        if not self.cell_blocks:
-            raise InvalidMeshException("No 3D elements were found in mesh")
-
-    def process_mesh(self) -> None:
+        
         # list of points labels of processed faces (all types)
         self.faces: List[Tuple[int, ...]] = []
 
@@ -60,6 +37,29 @@ class MeshReader3D:
         # keep track of the cell id to be processed.
         self.current_cellid: int = 0
 
+        self._check_mesh()
+        self.process_mesh()
+
+    def _check_mesh(self):
+        self.cell_blocks = []
+        self.n_cells = 0
+
+        for cell_block in self.mesh.cells:
+            ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
+
+            if ctype in meshio_3d and cell_block.data.size > 0:
+                self.cell_blocks.append(cell_block)
+                self.n_cells += len(cell_block.data)
+
+            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
+                raise NonSupportedElement(
+                    f"neatmesh does not support element type: {cell_block.type}"
+                )
+
+        if not self.cell_blocks:
+            raise InvalidMeshException("No 3D elements were found in mesh")
+
+    def process_mesh(self) -> None:
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
@@ -155,9 +155,25 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
     )
 
 
-cell_type_to_faces_func: Final = {
+cell_type_to_faces_func = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
     "wedge": wedge_cell_faces,
     "pyramid": pyramid_cell_faces,
 }
+
+
+def get_reader(mesh_file_path: str) -> MeshReader:
+    try:
+        mesh = meshio.read(mesh_file_path)
+    except meshio.ReadError as exception:
+        error = "Could not read mesh file (meshio error).\n"
+        error += f"{exception}"
+        raise InvalidMeshException(error) from exception
+    
+    if is_3d(mesh):
+        return MeshReader3D(mesh)
+    elif is_2d(mesh):
+        return MeshReader2D(mesh)
+    else:
+        raise InvalidMeshException("Couldn't decide on mesh dimensionality")
