@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from typing import Tuple
@@ -126,14 +127,19 @@ class Reporter:
                 )
 
         panel = Panel(
-            stats_table, title="[yellow bold]Quality Stats.", title_align="left", expand=False
+            stats_table,
+            title="[yellow bold]Quality Stats.",
+            title_align="left",
+            expand=False,
         )
 
         self.console.print(panel)
 
     def report_file_size(self, filename: str):
         fsize = humanize.naturalsize(os.path.getsize(filename))
-        self.console.print(f"Inspecting file [cyan]'{filename}'[/] (file size: {fsize})")
+        self.console.print(
+            f"Inspecting file [cyan]'{filename}'[/] (file size: {fsize})"
+        )
         self.console.print()
 
     def report_bounding_box(self):
@@ -143,23 +149,51 @@ class Reporter:
         self.console.print()
 
 
-def header_str(version: str):
+def version() -> str:
+    try:
+        from importlib import metadata
+    except ImportError:
+        try:
+            import importlib_metadata as metadata
+        except ImportError:
+            __version__ = "0.0.0"
+    try:
+        __version__ = metadata.version("neatmesh")
+    except Exception:
+        __version__ = "0.0.0"
+    return __version__
+
+
+def header_str():
     return f"""
                      __                      __
    ____  ___  ____ _/ /_____ ___  ___  _____/ /_
-  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   Version: {version}
+  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   Version: {version()}
  / / / /  __/ /_/ / /_/ / / / / /  __(__  ) / / /   License: MIT
 /_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/
 
 """
 
 
+def error(msg: str):
+    Console(stderr=True).print(f"[red][bold]Error:[/bold] {msg}[/red]")
+
+
 def main():
-    print(
-        header_str("0.0.1b"),
+    print(header_str())
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "input_file", metavar="input", type=str, nargs=1, help="Input mesh file name"
     )
 
-    filename = sys.argv[1]
+    args = parser.parse_args()
+    filename = args.input_file[0]
+
+    if not os.path.isfile(filename):
+        error(f"file {filename} does not exist!")
+        quit()
+
     console = Console()
 
     with console.status("Reading mesh..."):

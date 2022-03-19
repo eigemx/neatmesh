@@ -6,7 +6,6 @@ from .common import *
 from .exceptions import InvalidMeshException, NonSupportedElement
 
 
-# TODO: check if mesh exists before calling MeshReader3D
 class MeshReader3D:
     def __init__(self, mesh_file_path: str) -> None:
         try:

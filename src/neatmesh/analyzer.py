@@ -25,7 +25,7 @@ class Analyzer3D:
     def bounding_box(self) -> Tuple:
         x_min, y_min, z_min = np.min(self.points, axis=0)
         x_max, y_max, z_max = np.max(self.points, axis=0)
-    
+
         return (
             (x_min, y_min, z_min),
             (x_max, y_max, z_max),
