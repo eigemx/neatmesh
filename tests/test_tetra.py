@@ -2,8 +2,8 @@ import pathlib
 
 import numpy as np
 
-from neatmesh.geometry import tetra_data_from_tensor, tri_data_from_tensor
 from neatmesh.analyzer import Analyzer3D
+from neatmesh.geometry import tetra_data_from_tensor, tri_data_from_tensor
 from neatmesh.reader import MeshReader3D
 
 this_dir = pathlib.Path(__file__).resolve().parent
