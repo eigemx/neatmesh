@@ -12,7 +12,45 @@ from .geometry import (
     tri_data_from_tensor,
     wedge_data_from_tensor,
 )
-from .reader import MeshReader3D
+from .reader import MeshReader3D, MeshReader2D
+
+
+class Analyzer2D:
+    def __init__(self, reader: MeshReader2D) -> None:
+        self.reader = reader
+
+        self.points = self.reader.points
+        self.n_points = reader.n_points
+        
+        self.n_edges = len(reader.edges)
+        self.n_faces = reader.n_faces
+
+    def duplicate_nodes_count(self) -> int:
+        return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
+
+    def bounding_box(self) -> Tuple:
+        x_min, y_min = np.min(self.points, axis=0)
+        x_max, y_max = np.max(self.points, axis=0)
+
+        return (
+            (x_min, y_min),
+            (x_max, y_max),
+        )
+
+    def count_face_types(self) -> None:
+        self.quad_count = 0
+        self.tri_count = 0
+
+        for cell_block in self.reader.cell_blocks:
+            alpha_face_type = meshio_type_to_alpha[cell_block.type]
+            if alpha_face_type == "quad":
+                self.quad_count += len(cell_block.data)
+
+            elif alpha_face_type == "triangle":
+                self.tri_count += len(cell_block.data)
+
+    def analyze_faces(self) -> None:
+        pass
 
 
 class Analyzer3D:

@@ -7,11 +7,87 @@ from .exceptions import InvalidMeshException, NonSupportedElement
 
 
 class MeshReader:
-    pass
+    cell_blocks: List[meshio.CellBlock] = []
+    def __init__(self) -> None:
+        pass
+    
+    def _check_mesh(self) -> None:
+        pass
+
+    def process_mesh(self) -> None:
+        pass
 
 
 class MeshReader2D(MeshReader):
-    pass
+    def __init__(self, mesh: meshio.Mesh) -> None:
+        self.mesh = mesh
+        self.points = self.mesh.points
+        self.n_points = len(self.points)
+        
+        # list of points labels of processed edges
+        self.edges: Set[FrozenSet] = set()
+        self.edge_to_edgeid: Dict[FrozenSet, int] = {}
+        
+        # maps edge id to a list of faces id. An edge is shared by max. 2 faces.
+        self.edgeid_to_faceid: Dict[int, List[int]] = {}
+        
+        # keep track of the edge id to be processed.
+        self.current_edgeid: int = 0
+
+        # keep track of the face id to be processed.
+        self.current_faceid: int = 0
+
+        self._check_mesh()
+        self.process_mesh()
+
+    def _check_mesh(self):
+        self.n_faces = 0
+
+        for cell_block in self.mesh.cells:
+            ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
+
+            if ctype in meshio_2d and cell_block.data.size > 0:
+                self.cell_blocks.append(cell_block)
+                self.n_faces += len(cell_block.data)
+
+            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
+                raise NonSupportedElement(
+                    f"neatmesh does not support element type: {cell_block.type}"
+                )
+
+        if not self.cell_blocks:
+            raise InvalidMeshException("No 2D elements were found in mesh")
+
+    def process_mesh(self) -> None:
+        for cell_block in self.cell_blocks:
+            faces = cell_block.data
+            face_type = meshio_type_to_alpha[cell_block.type]
+            
+            if face_type == "quad":
+                edges_func = quad_face_edges
+            else:
+                edges_func = tri_face_edges
+
+            for face in faces:
+                edges = edges_func(face)
+                for edge in edges:
+                    f_edge = frozenset(edge)
+                    # have we met `edge` before?
+                    if not f_edge in self.edges:
+                        self.edge_to_edgeid[f_edge] = self.current_edgeid
+                        self.edges.add(f_edge)
+
+                        self.edgeid_to_faceid[self.current_edgeid] = [
+                            self.current_faceid,
+                            -1,
+                        ]
+                        self.current_edgeid += 1
+                    else:
+                        # link edge to face who owns it
+                        edge_id = self.edge_to_edgeid[f_edge]
+                        self.edgeid_to_faceid[edge_id][1] = self.current_faceid
+
+                self.current_faceid += 1
 
 
 class MeshReader3D(MeshReader):
@@ -41,7 +117,6 @@ class MeshReader3D(MeshReader):
         self.process_mesh()
 
     def _check_mesh(self):
-        self.cell_blocks = []
         self.n_cells = 0
 
         for cell_block in self.mesh.cells:
@@ -155,6 +230,22 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
     )
 
 
+def quad_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
+    return (
+        (face[0], face[1]),
+        (face[1], face[2]),
+        (face[2], face[3]),
+        (face[3], face[0]),
+    )
+
+def tri_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
+    return (
+        (face[0], face[1]),
+        (face[1], face[2]),
+        (face[2], face[0]),
+    )
+
+
 cell_type_to_faces_func = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
@@ -163,7 +254,7 @@ cell_type_to_faces_func = {
 }
 
 
-def get_reader(mesh_file_path: str) -> MeshReader:
+def assign_reader(mesh_file_path: str) -> MeshReader:
     try:
         mesh = meshio.read(mesh_file_path)
     except meshio.ReadError as exception:

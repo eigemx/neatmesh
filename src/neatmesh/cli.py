@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.tree import Tree
 
 from neatmesh.analyzer import Analyzer3D
-from neatmesh.reader import get_reader, MeshReader2D, MeshReader3D
+from neatmesh.reader import assign_reader, MeshReader2D, MeshReader3D
 
 
 class Reporter3D:
@@ -38,7 +38,8 @@ class Reporter3D:
             f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_status}"
         )
         faces_branch = tree.add(
-            f"Faces count = {face_count}, with {self.analyzer.n_boundary_faces} boundary faces"
+            f"Faces count = {face_count}" 
+            f" (including {self.analyzer.n_boundary_faces} boundary faces)"
         )
 
         if self.analyzer.n_quad > 0:
@@ -150,7 +151,7 @@ class Reporter3D:
     def report_bounding_box(self):
         self.console.print("[yellow bold]Mesh bounding box: ")
         for point in self.analyzer.bounding_box():
-            rprint(f"\t{point}")
+            print(f"\t{point}",)
         self.console.print()
 
 
@@ -198,7 +199,7 @@ def main():
     console = Console()
 
     with console.status("Reading mesh..."):
-        mesh = get_reader(filename)
+        mesh = assign_reader(filename)
 
     with console.status("Collecting cell types.."):
         analyzer = Analyzer3D(mesh)

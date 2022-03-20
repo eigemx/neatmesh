@@ -4,7 +4,7 @@ import numpy as np
 
 from neatmesh.analyzer import Analyzer3D
 from neatmesh.geometry import tetra_data_from_tensor, tri_data_from_tensor
-from neatmesh.reader import get_reader
+from neatmesh.reader import assign_reader
 
 this_dir = pathlib.Path(__file__).resolve().parent
 
@@ -43,7 +43,7 @@ def test_tri():
 
 
 def test_tetra_mesh():
-    mesh = get_reader(this_dir / "meshes" / "fine_cylinder.med")
+    mesh = assign_reader(this_dir / "meshes" / "fine_cylinder.med")
     q = Analyzer3D(mesh)
     q.count_cell_types()
     q.analyze_cells()
