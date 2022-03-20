@@ -2,15 +2,16 @@ from typing import Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha, is_3d, is_2d
+from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
 from .exceptions import InvalidMeshException, NonSupportedElement
 
 
 class MeshReader:
     cell_blocks: List[meshio.CellBlock] = []
+
     def __init__(self) -> None:
         pass
-    
+
     def _check_mesh(self) -> None:
         pass
 
@@ -23,14 +24,14 @@ class MeshReader2D(MeshReader):
         self.mesh = mesh
         self.points = self.mesh.points
         self.n_points = len(self.points)
-        
+
         # list of points labels of processed edges
         self.edges: Set[FrozenSet] = set()
         self.edge_to_edgeid: Dict[FrozenSet, int] = {}
-        
+
         # maps edge id to a list of faces id. An edge is shared by max. 2 faces.
         self.edgeid_to_faceid: Dict[int, List[int]] = {}
-        
+
         # keep track of the edge id to be processed.
         self.current_edgeid: int = 0
 
@@ -62,7 +63,7 @@ class MeshReader2D(MeshReader):
         for cell_block in self.cell_blocks:
             faces = cell_block.data
             face_type = meshio_type_to_alpha[cell_block.type]
-            
+
             if face_type == "quad":
                 edges_func = quad_face_edges
             else:
@@ -95,7 +96,7 @@ class MeshReader3D(MeshReader):
         self.mesh = mesh
         self.points = self.mesh.points
         self.n_points = len(self.points)
-        
+
         # list of points labels of processed faces (all types)
         self.faces: List[Tuple[int, ...]] = []
 
@@ -238,6 +239,7 @@ def quad_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
         (face[3], face[0]),
     )
 
+
 def tri_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
     return (
         (face[0], face[1]),
@@ -261,7 +263,7 @@ def assign_reader(mesh_file_path: str) -> MeshReader:
         error = "Could not read mesh file (meshio error).\n"
         error += f"{exception}"
         raise InvalidMeshException(error) from exception
-    
+
     if is_3d(mesh):
         return MeshReader3D(mesh)
     elif is_2d(mesh):

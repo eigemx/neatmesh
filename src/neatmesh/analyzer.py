@@ -12,7 +12,7 @@ from .geometry import (
     tri_data_from_tensor,
     wedge_data_from_tensor,
 )
-from .reader import MeshReader3D, MeshReader2D
+from .reader import MeshReader2D, MeshReader3D
 
 
 class Analyzer2D:
@@ -21,7 +21,7 @@ class Analyzer2D:
 
         self.points = self.reader.points
         self.n_points = reader.n_points
-        
+
         self.n_edges = len(reader.edges)
         self.n_faces = reader.n_faces
 
@@ -50,30 +50,52 @@ class Analyzer2D:
                 self.n_tri += len(cell_block.data)
 
     def analyze_faces(self) -> None:
-        self.faces_centers = np.array([]).reshape(0, 3)
-        self.faces_areas = np.array([])
-        self.faces_aspect_ratios = np.array([])
-        
+        self.face_centers = np.array([]).reshape(0, 3)
+        self.face_areas = np.array([])
+        self.face_aspect_ratios = np.array([])
+
         # Add points 3rd dimension, to use same geometry module tri & quad functions
         points = np.concatenate(
-            [
-                self.points, 
-                np.zeros(shape=(self.n_points, 1))
-            ], 
-        axis=1)
-        
+            [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
+        )
+
         for cell_block in self.reader.cell_blocks:
             face_type = meshio_type_to_alpha[cell_block.type]
             faces_tensor = np.take(points, cell_block.data, axis=0)
-            
+
             if face_type == "quad":
-                   centers, _, areas, aspect_ratios = quad_data_from_tensor(faces_tensor)
+                centers, _, areas, aspect_ratios = quad_data_from_tensor(faces_tensor)
             else:
                 centers, _, areas, aspect_ratios = tri_data_from_tensor(faces_tensor)
-            
-            self.face_centers = np.concatenate([self.faces_centers, centers])
-            self.face_areas = np.concatenate([self.faces_areas, areas])
-            self.face_aspect_ratios = np.concatenate([self.faces_aspect_ratios, aspect_ratios])
+
+            self.face_centers = np.concatenate([self.face_centers, centers])
+            self.face_areas = np.concatenate([self.face_areas, areas])
+            self.face_aspect_ratios = np.concatenate(
+                [self.face_aspect_ratios, aspect_ratios]
+            )
+
+    def analyze_non_ortho(self) -> None:
+        owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
+        interior_edges_mask = owner_neighbor[:, 1] != -1
+
+        # We will need interior_edges later in adjacent cells volume ratio
+        self.interior_edges = owner_neighbor[interior_edges_mask]
+
+        self.n_boundary_edges = self.n_edges - self.interior_edges.shape[0]
+
+        owners, neighbors = self.interior_edges[:, 0], self.interior_edges[:, 1]
+        owner_centers = np.take(self.face_centers, owners, axis=0)
+        neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
+
+        sf = self.face_normals[interior_edges_mask]
+        ef = neighbor_centers - owner_centers
+
+        dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
+        ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
+
+        costheta = dot(ef, sf)
+        self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
+
 
 class Analyzer3D:
     def __init__(self, reader: MeshReader3D) -> None:

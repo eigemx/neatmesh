@@ -1,9 +1,11 @@
 import argparse
 import os
+
 from rich.console import Console
 
-from neatmesh.reader import assign_reader, MeshReader3D
+from neatmesh.reader import MeshReader3D, assign_reader
 from neatmesh.reporter import Reporter2D, Reporter3D
+
 
 def version() -> str:
     try:
@@ -52,8 +54,8 @@ def main():
         mesh = assign_reader(filename)
 
     if isinstance(mesh, MeshReader3D):
-        reporter = Reporter3D(console, mesh)
+        reporter = Reporter3D(console, mesh, filename)
     else:
-        reporter = Reporter2D(console, mesh)
+        reporter = Reporter2D(console, mesh, filename)
 
-    reporter.report(filename)
+    reporter.report()
