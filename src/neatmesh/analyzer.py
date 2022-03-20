@@ -50,8 +50,30 @@ class Analyzer2D:
                 self.tri_count += len(cell_block.data)
 
     def analyze_faces(self) -> None:
-        pass
-
+        self.faces_centers = np.array([]).reshape(0, 3)
+        self.faces_areas = np.array([])
+        self.faces_aspect_ratios = np.array([])
+        
+        # Add points 3rd dimension, to use same geometry module tri & quad functions
+        points = np.concatenate(
+            [
+                self.points, 
+                np.zeros(shape=(self.n_points, 1))
+            ], 
+        axis=1)
+        
+        for cell_block in self.reader.cell_blocks:
+            face_type = meshio_type_to_alpha[cell_block.type]
+            faces_tensor = np.take(points, cell_block.data, axis=0)
+            
+            if face_type == "quad":
+                   centers, _, areas, aspect_ratios = quad_data_from_tensor(faces_tensor)
+            else:
+                centers, _, areas, aspect_ratios = tri_data_from_tensor(faces_tensor)
+            
+            self.faces_centers = np.concatenate([self.faces_centers, centers])
+            self.faces_areas = np.concatenate([self.faces_areas, areas])
+            self.faces_aspect_ratios = np.concatenate([self.faces_aspect_ratios, aspect_ratios])
 
 class Analyzer3D:
     def __init__(self, reader: MeshReader3D) -> None:
