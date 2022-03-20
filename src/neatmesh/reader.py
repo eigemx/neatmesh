@@ -7,16 +7,7 @@ from .exceptions import InvalidMeshException, NonSupportedElement
 
 
 class MeshReader:
-    cell_blocks: List[meshio.CellBlock] = []
-
-    def __init__(self) -> None:
-        pass
-
-    def _check_mesh(self) -> None:
-        pass
-
-    def process_mesh(self) -> None:
-        pass
+    pass
 
 
 class MeshReader2D(MeshReader):
@@ -43,6 +34,7 @@ class MeshReader2D(MeshReader):
 
     def _check_mesh(self):
         self.n_faces = 0
+        self.cell_blocks = []
 
         for cell_block in self.mesh.cells:
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
@@ -119,6 +111,7 @@ class MeshReader3D(MeshReader):
 
     def _check_mesh(self):
         self.n_cells = 0
+        self.cell_blocks = []
 
         for cell_block in self.mesh.cells:
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
