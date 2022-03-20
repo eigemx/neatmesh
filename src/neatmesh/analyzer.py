@@ -38,16 +38,16 @@ class Analyzer2D:
         )
 
     def count_face_types(self) -> None:
-        self.quad_count = 0
-        self.tri_count = 0
+        self.n_quad = 0
+        self.n_tri = 0
 
         for cell_block in self.reader.cell_blocks:
             alpha_face_type = meshio_type_to_alpha[cell_block.type]
             if alpha_face_type == "quad":
-                self.quad_count += len(cell_block.data)
+                self.n_quad += len(cell_block.data)
 
             elif alpha_face_type == "triangle":
-                self.tri_count += len(cell_block.data)
+                self.n_tri += len(cell_block.data)
 
     def analyze_faces(self) -> None:
         self.faces_centers = np.array([]).reshape(0, 3)
@@ -71,9 +71,9 @@ class Analyzer2D:
             else:
                 centers, _, areas, aspect_ratios = tri_data_from_tensor(faces_tensor)
             
-            self.faces_centers = np.concatenate([self.faces_centers, centers])
-            self.faces_areas = np.concatenate([self.faces_areas, areas])
-            self.faces_aspect_ratios = np.concatenate([self.faces_aspect_ratios, aspect_ratios])
+            self.face_centers = np.concatenate([self.faces_centers, centers])
+            self.face_areas = np.concatenate([self.faces_areas, areas])
+            self.face_aspect_ratios = np.concatenate([self.faces_aspect_ratios, aspect_ratios])
 
 class Analyzer3D:
     def __init__(self, reader: MeshReader3D) -> None:
