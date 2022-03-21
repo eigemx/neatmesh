@@ -1,5 +1,5 @@
 import os
-from typing import Tuple
+from typing import Tuple, Dict
 
 import humanize
 import numpy as np
@@ -32,7 +32,7 @@ class Reporter:
 
         return arr_max, arr_min, arr_mean, arr_std
 
-    def report_mesh_stats(self, stats):
+    def  report_mesh_stats(self, quality_metrics_dict):
         self.console.print()
 
         stats_table = Table(box=box.SIMPLE)
@@ -43,20 +43,20 @@ class Reporter:
         stats_table.add_column("Std.", justify="right")
         stats_table.add_column("", justify="right")
 
-        for stat, stats_dict in stats.items():
+        for metric_name, metric_dict in quality_metrics_dict.items():
             # Avoid calling stats_from_array in case input array is empty
             # this might occur in case of one cell mesh, where analyzer.adj_ratio is empty.
-            if stats_dict["array"].shape[0] == 0:
+            if metric_dict["array"].shape[0] == 0:
                 continue
-            _max, _min, _mean, _std = self.stats_from_array(stats_dict["array"])
+            _max, _min, _mean, _std = self.stats_from_array(metric_dict["array"])
             status = ""
 
-            if "max" in stats_dict:
-                status = "[red]Not good" if _max > stats_dict["max"] else "[green]Ok"
+            if "max" in metric_dict:
+                status = "[red]Not good" if _max > metric_dict["max"] else "[green]Ok"
 
-            if _max > 1e-4 or not stats_dict["sci_not"]:
+            if _max > 1e-4 or not metric_dict["sci_not"]:
                 stats_table.add_row(
-                    stat,
+                    metric_name,
                     f"{_max:.4f}",
                     f"{_min:.4f}",
                     f"{_mean:.4f}",
@@ -65,7 +65,7 @@ class Reporter:
                 )
             else:
                 stats_table.add_row(
-                    stat, f"{_max:4e}", f"{_min:.4e}", f"{_mean:.4e}", f"{_std:.4e}"
+                    metric_name, f"{_max:4e}", f"{_min:.4e}", f"{_mean:.4e}", f"{_std:.4e}"
                 )
 
         panel = Panel(
@@ -133,7 +133,7 @@ class Reporter2D(Reporter):
 
         self.console.print(tree)
 
-    def report(self):
+    def report(self, rules: Dict[str, float]):
         with self.console.status("Collecting cell types.."):
             self.analyzer = Analyzer2D(self.mesh)
             self.analyzer.count_face_types()
@@ -148,10 +148,16 @@ class Reporter2D(Reporter):
             self.analyzer.analyze_adjacents_volume_ratio()"""
 
         self.report_file_size(self.filename)
+        
+        if not rules:
+            self.console.print("No quality rules file found, using defaults.\n")
+        else:
+            self.console.print(f"Found quality rules file: '{rules['fname']}'\n")
+
         self.report_bounding_box()
         self.report_elements_count()
 
-        stats = {
+        quality_metric_dict = {
             "Face Area": {
                 "array": self.analyzer.face_areas,
                 "sci_not": True,
@@ -159,11 +165,11 @@ class Reporter2D(Reporter):
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
-                "max": 15.0,
+                "max": rules.get("max_face_aspect_ratio", 20),
             },
         }
 
-        self.report_mesh_stats(stats)
+        self.report_mesh_stats(quality_metric_dict)
 
 
 class Reporter3D(Reporter):
@@ -214,7 +220,7 @@ class Reporter3D(Reporter):
 
         self.console.print(tree)
 
-    def report(self):
+    def report(self, rules: Dict[str, float]):
         with self.console.status("Collecting cell types.."):
             self.analyzer = Analyzer3D(self.mesh)
             self.analyzer.count_cell_types()
@@ -232,10 +238,16 @@ class Reporter3D(Reporter):
             self.analyzer.analyze_adjacents_volume_ratio()
 
         self.report_file_size(self.filename)
+        
+        if not rules:
+            self.console.print("No quality rules file found, using defaults.\n")
+        else:
+            self.console.print(f"Found quality rules file: '{rules['fname']}'\n")
+
         self.report_bounding_box()
         self.report_elements_count()
-
-        stats = {
+        
+        quality_metrics_dict = {
             "Face Area": {
                 "array": self.analyzer.face_areas,
                 "sci_not": True,
@@ -243,19 +255,19 @@ class Reporter3D(Reporter):
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
-                "max": 15.0,
+                "max": rules.get("max_face_aspect_ratio", 20),
             },
             "Cell Volume": {"array": self.analyzer.cells_volumes, "sci_not": True},
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
-                "max": 50,
+                "max": rules.get("max_non_orhto", 65),
             },
             "Adjacent Cells Volume Ratio": {
                 "array": self.analyzer.adj_ratio,
                 "sci_not": False,
-                "max": 10,
+                "max": rules.get("max_neighbor_volume_ratio", 15),
             },
         }
 
-        self.report_mesh_stats(stats)
+        self.report_mesh_stats(quality_metrics_dict)

@@ -1,5 +1,7 @@
 import argparse
+import toml
 import os
+from pathlib import Path
 
 from rich.console import Console
 
@@ -57,5 +59,21 @@ def main():
         reporter = Reporter3D(console, mesh, filename)
     else:
         reporter = Reporter2D(console, mesh, filename)
+    
+    
+    # Check quality rules file, if exists
+    fname_stripped = Path(filename).stem
+    quality_rules_candidates = [
+        f"{fname_stripped}.toml", 
+        "neatmesh.toml", 
+        "quality.toml"
+    ]
+    
+    rules_dict = {}
+    for fname in quality_rules_candidates:
+        if os.path.isfile(fname):
+            rules_dict = toml.load(fname)
+            rules_dict["fname"] = fname
+            break
 
-    reporter.report()
+    reporter.report(rules_dict)

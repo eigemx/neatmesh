@@ -1,0 +1,3 @@
+max_non_orhto = 45
+max_face_aspect_ratio = 15
+max_neighbor_volume_ratio = 10
