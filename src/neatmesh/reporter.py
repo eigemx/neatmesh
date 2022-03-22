@@ -1,9 +1,8 @@
 import os
-from typing import Tuple, Dict
+from typing import Dict, Tuple, List
 
 import humanize
 import numpy as np
-
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -19,6 +18,7 @@ class Reporter:
         self.console = console
         self.mesh = mesh
         self.filename = filename
+        self.concerns: List[str] = []
 
     def report_elements_count(self):
         pass
@@ -32,7 +32,7 @@ class Reporter:
 
         return arr_max, arr_min, arr_mean, arr_std
 
-    def  report_mesh_stats(self, quality_metrics_dict):
+    def report_mesh_stats(self, quality_metrics_dict):
         self.console.print()
 
         stats_table = Table(box=box.SIMPLE)
@@ -54,6 +54,15 @@ class Reporter:
             if "max" in metric_dict:
                 status = "[red]Not good" if _max > metric_dict["max"] else "[green]Ok"
 
+                if _max > metric_dict["max"]:
+                    n_failed = np.count_nonzero(
+                        metric_dict["array"] > metric_dict["max"]
+                    )
+                    self.concerns.append(
+                        f"* {n_failed} elements have greater values than" 
+                        f"'{metric_name}' max. value {metric_dict['max']}."
+                    )
+
             if _max > 1e-4 or not metric_dict["sci_not"]:
                 stats_table.add_row(
                     metric_name,
@@ -65,7 +74,11 @@ class Reporter:
                 )
             else:
                 stats_table.add_row(
-                    metric_name, f"{_max:4e}", f"{_min:.4e}", f"{_mean:.4e}", f"{_std:.4e}"
+                    metric_name,
+                    f"{_max:4e}",
+                    f"{_min:.4e}",
+                    f"{_mean:.4e}",
+                    f"{_std:.4e}",
                 )
 
         panel = Panel(
@@ -92,6 +105,22 @@ class Reporter:
             )
         self.console.print()
 
+    def report_concerns(self):
+        if self.concerns:
+            concerns_table = Table(box=None)
+            concerns_table.add_column("", justify="left")
+
+            for concern in self.concerns:
+                concerns_table.add_row(f"[red]{concern}")
+
+            panel = Panel(
+                concerns_table,
+                expand=False,
+                title="[yellow bold]Concerns",
+                title_align="left",
+            )
+            self.console.print(panel)
+
     def report(self, filename: str) -> None:
         pass
 
@@ -112,15 +141,19 @@ class Reporter2D(Reporter):
 
         duplicate_nodes = self.analyzer.duplicate_nodes_count()
         duplicate_nodes_branch = (
-            "[green](Ok)" if duplicate_nodes == 0 else "[red](Error)"
+            "[green](Ok)" if duplicate_nodes == 0 else "[red](Not good)"
         )
+
+        if duplicate_nodes > 0:
+            self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
+
         points_branch.add(
             f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_branch}"
         )
 
         tree.add(
             f"Edges count = {edge_count}"
-            # f" (including {self.analyzer.n_boundary_faces} boundary faces)"
+            f" (including {self.analyzer.n_boundary_edges} boundary edges)"
         )
         faces_branch = tree.add(f"Faces count = {face_count}")
 
@@ -144,11 +177,11 @@ class Reporter2D(Reporter):
         with self.console.status("Checking non-orthogonality..."):
             self.analyzer.analyze_non_ortho()
 
-        """with self.console.status("Checking adjacent cells volume ratio..."):
-            self.analyzer.analyze_adjacents_volume_ratio()"""
+        with self.console.status("Checking adjacent cells volume ratio..."):
+            self.analyzer.analyze_adjacents_area_ratio()
 
         self.report_file_size(self.filename)
-        
+
         if not rules:
             self.console.print("No quality rules file found, using defaults.\n")
         else:
@@ -170,11 +203,17 @@ class Reporter2D(Reporter):
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
-                "max": rules.get("non_ortho_max", 60),
-            }
+                "max": rules.get("max_non_orhto", 60),
+            },
+            "Adjacent Faces Area Ratio": {
+                "array": self.analyzer.adj_ratio,
+                "sci_not": False,
+                "max": rules.get("max_neighbor_area_ratio", 15),
+            },
         }
 
         self.report_mesh_stats(quality_metric_dict)
+        self.report_concerns()
 
 
 class Reporter3D(Reporter):
@@ -243,7 +282,7 @@ class Reporter3D(Reporter):
             self.analyzer.analyze_adjacents_volume_ratio()
 
         self.report_file_size(self.filename)
-        
+
         if not rules:
             self.console.print("No quality rules file found, using defaults.\n")
         else:
@@ -251,7 +290,7 @@ class Reporter3D(Reporter):
 
         self.report_bounding_box()
         self.report_elements_count()
-        
+
         quality_metrics_dict = {
             "Face Area": {
                 "array": self.analyzer.face_areas,
@@ -276,3 +315,4 @@ class Reporter3D(Reporter):
         }
 
         self.report_mesh_stats(quality_metrics_dict)
+        self.report_concerns()

@@ -48,7 +48,7 @@ class Analyzer2D:
 
             elif alpha_face_type == "triangle":
                 self.n_tri += len(cell_block.data)
-    
+
     def analyze_faces(self) -> None:
         self.face_centers = np.array([]).reshape(0, 3)
         self.face_areas = np.array([])
@@ -58,7 +58,7 @@ class Analyzer2D:
         self.__3d_points = np.concatenate(
             [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
         )
-        
+
         # This translates list of edge tuples, to point coordinates
         self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
 
@@ -81,7 +81,7 @@ class Analyzer2D:
         # owner_neighbor is 2D matrix of shape (n_interior_edges, 2)
         # first column is the index of the owner faces,
         # second column is the index of neighbor faces.
-        # second column contains '-1' for boudnary edges. 
+        # second column contains '-1' for boudnary edges.
         owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
         interior_edges_mask = owner_neighbor[:, 1] != -1
 
@@ -94,7 +94,7 @@ class Analyzer2D:
         owner_centers = np.take(self.face_centers, owners, axis=0)
         neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
 
-        internal_edges_tensor = self.__edges_tensor[interior_edges_mask]        
+        internal_edges_tensor = self.__edges_tensor[interior_edges_mask]
         edges_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
 
         ef = neighbor_centers - owner_centers
@@ -102,6 +102,16 @@ class Analyzer2D:
 
         costheta = np.abs(dot(ef, edges_vectors))
         self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
+
+    def analyze_adjacents_area_ratio(self) -> None:
+        adjacent_faces_areas = np.take(self.face_areas, self.interior_edges, axis=0)
+        self.adj_ratio = np.max(
+            [
+                adjacent_faces_areas[:, 0] / adjacent_faces_areas[:, 1],
+                adjacent_faces_areas[:, 1] / adjacent_faces_areas[:, 0],
+            ],
+            axis=0,
+        )
 
 
 class Analyzer3D:
