@@ -1,4 +1,4 @@
-from typing import Dict, FrozenSet, List, Set, Tuple
+from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
@@ -7,14 +7,21 @@ from .exceptions import InvalidMeshException, NonSupportedElement
 
 
 class MeshReader:
-    pass
-
-
-class MeshReader2D(MeshReader):
     def __init__(self, mesh: meshio.Mesh) -> None:
         self.mesh = mesh
         self.points = self.mesh.points
         self.n_points = len(self.points)
+
+    def __check_mesh(self) -> None:
+        pass
+
+    def __process_mesh(self) -> None:
+        pass
+
+
+class MeshReader2D(MeshReader):
+    def __init__(self, mesh: meshio.Mesh) -> None:
+        super().__init__(mesh)
 
         # list of points labels of processed edges
         self.edges: List[Tuple] = []
@@ -30,10 +37,10 @@ class MeshReader2D(MeshReader):
         # keep track of the face id to be processed.
         self.__current_faceid: int = 0
 
-        self._check_mesh()
-        self.process_mesh()
+        self.__check_mesh()
+        self.__process_mesh()
 
-    def _check_mesh(self):
+    def __check_mesh(self):
         self.n_faces = 0
         self.cell_blocks = []
 
@@ -52,7 +59,7 @@ class MeshReader2D(MeshReader):
         if not self.cell_blocks:
             raise InvalidMeshException("No 2D elements were found in mesh")
 
-    def process_mesh(self) -> None:
+    def __process_mesh(self) -> None:
         for cell_block in self.cell_blocks:
             faces = cell_block.data
             face_type = meshio_type_to_alpha[cell_block.type]
@@ -87,9 +94,7 @@ class MeshReader2D(MeshReader):
 
 class MeshReader3D(MeshReader):
     def __init__(self, mesh: meshio.Mesh) -> None:
-        self.mesh = mesh
-        self.points = self.mesh.points
-        self.n_points = len(self.points)
+        super().__init__(mesh)
 
         # list of points labels of processed faces (all types)
         self.faces: List[Tuple[int, ...]] = []
@@ -108,10 +113,10 @@ class MeshReader3D(MeshReader):
         # keep track of the cell id to be processed.
         self.__current_cellid: int = 0
 
-        self._check_mesh()
-        self.process_mesh()
+        self.__check_mesh()
+        self.__process_mesh()
 
-    def _check_mesh(self):
+    def __check_mesh(self):
         self.n_cells = 0
         self.cell_blocks = []
 
@@ -130,7 +135,7 @@ class MeshReader3D(MeshReader):
         if not self.cell_blocks:
             raise InvalidMeshException("No 3D elements were found in mesh")
 
-    def process_mesh(self) -> None:
+    def __process_mesh(self) -> None:
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
@@ -226,7 +231,7 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
     )
 
 
-def quad_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
+def quad_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
     return (
         (face[0], face[1]),
         (face[1], face[2]),
@@ -235,7 +240,7 @@ def quad_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
     )
 
 
-def tri_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
+def tri_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
     return (
         (face[0], face[1]),
         (face[1], face[2]),
@@ -243,7 +248,7 @@ def tri_face_edges(face: List) -> Tuple[Tuple[int, ...]]:
     )
 
 
-cell_type_to_faces_func = {
+cell_type_to_faces_func: Dict[str, Callable] = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
     "wedge": wedge_cell_faces,
@@ -261,7 +266,7 @@ def assign_reader(mesh_file_path: str) -> MeshReader:
 
     if is_3d(mesh):
         return MeshReader3D(mesh)
-    elif is_2d(mesh):
+    if is_2d(mesh):
         return MeshReader2D(mesh)
-    else:
-        raise InvalidMeshException("Couldn't decide on mesh dimensionality")
+
+    raise InvalidMeshException("Couldn't decide on mesh dimensionality")
