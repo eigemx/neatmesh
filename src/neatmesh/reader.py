@@ -17,17 +17,18 @@ class MeshReader2D(MeshReader):
         self.n_points = len(self.points)
 
         # list of points labels of processed edges
-        self.edges: Set[FrozenSet] = set()
+        self.edges: List[Tuple] = []
+        self.__edges_sets: Set[FrozenSet] = set()
         self.edge_to_edgeid: Dict[FrozenSet, int] = {}
 
         # maps edge id to a list of faces id. An edge is shared by max. 2 faces.
         self.edgeid_to_faceid: Dict[int, List[int]] = {}
 
         # keep track of the edge id to be processed.
-        self.current_edgeid: int = 0
+        self.__current_edgeid: int = 0
 
         # keep track of the face id to be processed.
-        self.current_faceid: int = 0
+        self.__current_faceid: int = 0
 
         self._check_mesh()
         self.process_mesh()
@@ -66,21 +67,22 @@ class MeshReader2D(MeshReader):
                 for edge in edges:
                     f_edge = frozenset(edge)
                     # have we met `edge` before?
-                    if not f_edge in self.edges:
-                        self.edge_to_edgeid[f_edge] = self.current_edgeid
-                        self.edges.add(f_edge)
+                    if not f_edge in self.__edges_sets:
+                        self.edge_to_edgeid[f_edge] = self.__current_edgeid
+                        self.edges.append(edge)
+                        self.__edges_sets.add(f_edge)
 
-                        self.edgeid_to_faceid[self.current_edgeid] = [
-                            self.current_faceid,
+                        self.edgeid_to_faceid[self.__current_edgeid] = [
+                            self.__current_faceid,
                             -1,
                         ]
-                        self.current_edgeid += 1
+                        self.__current_edgeid += 1
                     else:
                         # link edge to face who owns it
                         edge_id = self.edge_to_edgeid[f_edge]
-                        self.edgeid_to_faceid[edge_id][1] = self.current_faceid
+                        self.edgeid_to_faceid[edge_id][1] = self.__current_faceid
 
-                self.current_faceid += 1
+                self.__current_faceid += 1
 
 
 class MeshReader3D(MeshReader):
@@ -92,7 +94,7 @@ class MeshReader3D(MeshReader):
         # list of points labels of processed faces (all types)
         self.faces: List[Tuple[int, ...]] = []
 
-        self.faces_set: Set[FrozenSet] = set()
+        self.__faces_set: Set[FrozenSet] = set()
 
         # map face points to face index in `faces`
         self.face_to_faceid: Dict[FrozenSet, int] = {}
@@ -101,10 +103,10 @@ class MeshReader3D(MeshReader):
         self.faceid_to_cellid: Dict[int, List[int]] = {}
 
         # keep track of the face id to be processed.
-        self.current_faceid: int = 0
+        self.__current_faceid: int = 0
 
         # keep track of the cell id to be processed.
-        self.current_cellid: int = 0
+        self.__current_cellid: int = 0
 
         self._check_mesh()
         self.process_mesh()
@@ -139,23 +141,23 @@ class MeshReader3D(MeshReader):
                 for face in faces:
                     fface = frozenset(face)
                     # have we met `face` before?
-                    if not fface in self.faces_set:
-                        self.face_to_faceid[fface] = self.current_faceid
-                        self.faces_set.add(fface)
+                    if not fface in self.__faces_set:
+                        self.face_to_faceid[fface] = self.__current_faceid
+                        self.__faces_set.add(fface)
 
                         # add face points labels to `faces`
                         self.faces.append(face)
-                        self.faceid_to_cellid[self.current_faceid] = [
-                            self.current_cellid,
+                        self.faceid_to_cellid[self.__current_faceid] = [
+                            self.__current_cellid,
                             -1,
                         ]
-                        self.current_faceid += 1
+                        self.__current_faceid += 1
                     else:
                         # link the face to the cell who owns it
                         face_id = self.face_to_faceid[fface]
-                        self.faceid_to_cellid[face_id][1] = self.current_cellid
+                        self.faceid_to_cellid[face_id][1] = self.__current_cellid
 
-                self.current_cellid += 1
+                self.__current_cellid += 1
 
 
 def hex_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:

@@ -48,20 +48,23 @@ class Analyzer2D:
 
             elif alpha_face_type == "triangle":
                 self.n_tri += len(cell_block.data)
-
+    
     def analyze_faces(self) -> None:
         self.face_centers = np.array([]).reshape(0, 3)
         self.face_areas = np.array([])
         self.face_aspect_ratios = np.array([])
 
         # Add points 3rd dimension, to use same geometry module tri & quad functions
-        points = np.concatenate(
+        self.__3d_points = np.concatenate(
             [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
         )
+        
+        # This translates list of edge tuples, to point coordinates
+        self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
 
         for cell_block in self.reader.cell_blocks:
             face_type = meshio_type_to_alpha[cell_block.type]
-            faces_tensor = np.take(points, cell_block.data, axis=0)
+            faces_tensor = np.take(self.__3d_points, cell_block.data, axis=0)
 
             if face_type == "quad":
                 centers, _, areas, aspect_ratios = quad_data_from_tensor(faces_tensor)
@@ -75,6 +78,10 @@ class Analyzer2D:
             )
 
     def analyze_non_ortho(self) -> None:
+        # owner_neighbor is 2D matrix of shape (n_interior_edges, 2)
+        # first column is the index of the owner faces,
+        # second column is the index of neighbor faces.
+        # second column contains '-1' for boudnary edges. 
         owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
         interior_edges_mask = owner_neighbor[:, 1] != -1
 
@@ -87,14 +94,14 @@ class Analyzer2D:
         owner_centers = np.take(self.face_centers, owners, axis=0)
         neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
 
-        sf = self.face_normals[interior_edges_mask]
+        internal_edges_tensor = self.__edges_tensor[interior_edges_mask]        
+        edges_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
+
         ef = neighbor_centers - owner_centers
-
         dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
-        ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
 
-        costheta = dot(ef, sf)
-        self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
+        costheta = np.abs(dot(ef, edges_vectors))
+        self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
 
 
 class Analyzer3D:
