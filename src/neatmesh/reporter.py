@@ -141,10 +141,10 @@ class Reporter2D(Reporter):
         with self.console.status("Analyzing faces..."):
             self.analyzer.analyze_faces()
 
-        """with self.console.status("Checking non-orthogonality..."):
+        with self.console.status("Checking non-orthogonality..."):
             self.analyzer.analyze_non_ortho()
 
-        with self.console.status("Checking adjacent cells volume ratio..."):
+        """with self.console.status("Checking adjacent cells volume ratio..."):
             self.analyzer.analyze_adjacents_volume_ratio()"""
 
         self.report_file_size(self.filename)
@@ -167,6 +167,11 @@ class Reporter2D(Reporter):
                 "sci_not": False,
                 "max": rules.get("max_face_aspect_ratio", 20),
             },
+            "Non-Orthogonality": {
+                "array": self.analyzer.non_ortho,
+                "sci_not": False,
+                "max": rules.get("non_ortho_max", 60),
+            }
         }
 
         self.report_mesh_stats(quality_metric_dict)

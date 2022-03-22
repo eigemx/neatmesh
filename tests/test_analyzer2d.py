@@ -12,4 +12,3 @@ def test_total_area():
     analyzer.analyze_faces()
     
     assert np.allclose([np.sum(analyzer.face_areas)], [3.14153])
-    
