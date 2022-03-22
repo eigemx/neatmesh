@@ -1,8 +1,8 @@
 import argparse
-import toml
 import os
 from pathlib import Path
 
+import toml
 from rich.console import Console
 
 from neatmesh.reader import MeshReader3D, assign_reader
@@ -59,16 +59,15 @@ def main():
         reporter = Reporter3D(console, mesh, filename)
     else:
         reporter = Reporter2D(console, mesh, filename)
-    
-    
+
     # Check quality rules file, if exists
     fname_stripped = Path(filename).stem
     quality_rules_candidates = [
-        f"{fname_stripped}.toml", 
-        "neatmesh.toml", 
-        "quality.toml"
+        f"{fname_stripped}.toml",
+        "neatmesh.toml",
+        "quality.toml",
     ]
-    
+
     rules_dict = {}
     for fname in quality_rules_candidates:
         if os.path.isfile(fname):
