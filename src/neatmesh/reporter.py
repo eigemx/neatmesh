@@ -59,8 +59,8 @@ class Reporter:
                         metric_dict["array"] > metric_dict["max"]
                     )
                     self.concerns.append(
-                        f"* {n_failed} elements have greater values than" 
-                        f"'{metric_name}' max. value {metric_dict['max']}."
+                        f"* Found {n_failed} elements with '{metric_name}' greater than "
+                        f" max. value {metric_dict['max']}."
                     )
 
             if _max > 1e-4 or not metric_dict["sci_not"]:
