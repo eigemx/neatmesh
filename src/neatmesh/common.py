@@ -20,7 +20,7 @@ meshio_3d: Final = {
 meshio_type_to_alpha: Final = {
     "vertex": "vertex",
     "line": "line",
-    "line": "line3",
+    "line3": "line",
     "triangle": "triangle",
     "triangle6": "triangle",
     "triangle7": "triangle",
