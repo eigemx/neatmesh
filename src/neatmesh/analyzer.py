@@ -1,21 +1,30 @@
+"""neatmesh mesh 2D & 3D analyzers"""
+# pylint: disable=too-many-instance-attributes
 from typing import Tuple
 
 import numpy as np
 
 from .common import meshio_type_to_alpha
 from .geometry import (
+    dot,
+    dot_normalize,
     hex_data_from_tensor,
     pyramid_data_from_tensor,
     quad_data_from_tensor,
     tetra_data_from_tensor,
     tri_data_from_tensor,
     wedge_data_from_tensor,
-    dot,
 )
 from .reader import MeshReader2D, MeshReader3D
 
 
 class Analyzer2D:
+    """Analyze a 2D mesh and provide edges and faces count,
+    faces areas, faces aspect ratios and adjacent faces volume ratios.
+
+    Analyzer2D requires an instance of a MeshReader2D as an input.
+    """
+
     def __init__(self, reader: MeshReader2D) -> None:
         self.reader = reader
 
@@ -48,9 +57,11 @@ class Analyzer2D:
         self.adj_ratio = np.array([])
 
     def duplicate_nodes_count(self) -> int:
+        """Count number of duplicate points/nodes"""
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
     def bounding_box(self) -> Tuple:
+        """Return coordinates of bounding box of the mesh (min & max coords)"""
         x_min, y_min = np.min(self.points, axis=0)
         x_max, y_max = np.max(self.points, axis=0)
 
@@ -60,6 +71,7 @@ class Analyzer2D:
         )
 
     def count_face_types(self) -> None:
+        """Count and update the number of quad and triangle faces"""
         for cell_block in self.reader.cell_blocks:
             alpha_face_type = meshio_type_to_alpha[cell_block.type]
             if alpha_face_type == "quad":
@@ -69,6 +81,9 @@ class Analyzer2D:
                 self.n_tri += len(cell_block.data)
 
     def analyze_faces(self) -> None:
+        """Call appropriate methods for each face type and update the following:
+        faces centers, faces areas and face aspect ratios.
+        """
         for cell_block in self.reader.cell_blocks:
             face_type = meshio_type_to_alpha[cell_block.type]
             faces_tensor = np.take(self.__3d_points, cell_block.data, axis=0)
@@ -85,11 +100,17 @@ class Analyzer2D:
             )
 
     def analyze_non_ortho(self) -> None:
+        """For each internal edge, calculate the non-orthogonality between the faces.
+        Non-orthogonality is defined as the angle (in degrees) between the vector
+        connecting two neighbor faces centroids, and shared edge normal vector.
+        """
         # owner_neighbor is 2D matrix of shape (n_interior_edges, 2)
         # first column is the index of the owner faces,
         # second column is the index of neighbor faces.
         # second column contains '-1' for boudnary edges.
         owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
+
+        # filter our boundary edges
         interior_edges_mask = owner_neighbor[:, 1] != -1
 
         # We will need interior_edges later in adjacent cells volume ratio
@@ -101,15 +122,20 @@ class Analyzer2D:
         owner_centers = np.take(self.face_centers, owners, axis=0)
         neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
 
+        # internal_edges_tensor has shape (n_internal_edges, 2, 3)
+        # and represents the coordinates of first and second coordinates of
+        # each edge.
         internal_edges_tensor = self.__edges_tensor[interior_edges_mask]
         edges_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
 
-        ef = neighbor_centers - owner_centers
+        # array of vectors connecting adjacent faces centroids.
+        neigbor_owner_vectors = neighbor_centers - owner_centers
 
-        costheta = np.abs(dot(ef, edges_vectors))
+        costheta = np.abs(dot_normalize(neigbor_owner_vectors, edges_vectors))
         self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
 
     def analyze_adjacents_area_ratio(self) -> None:
+        """Calculate the area ratio for each two neighbor faces (max/min)"""
         adjacent_faces_areas = np.take(self.face_areas, self.__interior_edges, axis=0)
         self.adj_ratio = np.max(
             [
@@ -121,6 +147,12 @@ class Analyzer2D:
 
 
 class Analyzer3D:
+    """Analyze a 3D mesh and provide faces and cells count,
+    faces areas, faces aspect ratios and adjacent cells volume ratios.
+
+    Analyzer3D requires an instance of a MeshReader3D as an input.
+    """
+
     def __init__(self, reader: MeshReader3D) -> None:
         self.reader = reader
 
@@ -150,17 +182,18 @@ class Analyzer3D:
         self.cells_centers: np.ndarray = np.array([]).reshape(0, 3)
         self.cells_volumes: np.ndarray = np.array([])
 
-        self.interior_faces = np.array([])
+        self.interior_faces: np.ndarray = np.array([])
         self.n_boundary_faces: int = 0
 
-        self.non_ortho = np.array([])
-        self.adj_ratio = np.array([])
-
+        self.non_ortho: np.ndarray = np.array([])
+        self.adj_ratio: np.ndarray = np.array([])
 
     def duplicate_nodes_count(self) -> int:
+        """Count number of duplicate points/nodes"""
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
     def bounding_box(self) -> Tuple:
+        """Return coordinates of bounding box of the mesh (min & max coords)"""
         x_min, y_min, z_min = np.min(self.points, axis=0)
         x_max, y_max, z_max = np.max(self.points, axis=0)
 
@@ -170,6 +203,7 @@ class Analyzer3D:
         )
 
     def count_cell_types(self) -> None:
+        """Count and update the number of cells for each cell type"""
         for cell_block in self.reader.cell_blocks:
             alpha_cell_type = meshio_type_to_alpha[cell_block.type]
             if alpha_cell_type == "hexahedron":
@@ -191,6 +225,9 @@ class Analyzer3D:
                 self.has_tri = True
 
     def analyze_faces(self):
+        """Call appropriate methods for each face type and update the following:
+        faces centers, faces areas, face normals and face aspect ratios.
+        """
         if self.has_tri:
             tri_mask = self.faces[:, -1] == -1
             tri_faces = self.faces[tri_mask][:, :-1]
@@ -206,7 +243,7 @@ class Analyzer3D:
 
         if self.has_quad:
             quad_mask = self.faces[:, -1] != -1
-            quad_faces = self.faces[self.quad_mask]
+            quad_faces = self.faces[quad_mask]
 
             quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
             (
@@ -218,37 +255,29 @@ class Analyzer3D:
             self.n_quad += len(quad_faces)
 
     def analyze_cells(self) -> None:
+        """Call appropriate methods for each cell type and update cells centers
+        and cells volumes.
+        """
         cell_type_handler_map = {
-            "hexahedron": self.analyze_hex_cells,
-            "tetra": self.analyze_tetra_cells,
-            "wedge": self.analyze_wedge_cells,
-            "pyramid": self.analyze_pyramid_cells,
+            "hexahedron": hex_data_from_tensor,
+            "tetra": tetra_data_from_tensor,
+            "wedge": wedge_data_from_tensor,
+            "pyramid": pyramid_data_from_tensor,
         }
 
         for cell_block in self.reader.cell_blocks:
             ctype = meshio_type_to_alpha[cell_block.type]
             handler = cell_type_handler_map[ctype]
-            centers, vols = handler(cell_block.data)
+            data_tensor = np.take(self.points, cell_block.data, axis=0)
+            centers, vols = handler(data_tensor)
             self.cells_centers = np.concatenate([self.cells_centers, centers], axis=0)
             self.cells_volumes = np.concatenate([self.cells_volumes, vols], axis=0)
 
-    def analyze_tetra_cells(self, cells):
-        tetra_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
-        return tetra_data_from_tensor(tetra_cells_tensor)
-
-    def analyze_hex_cells(self, cells):
-        hex_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:8, :]
-        return hex_data_from_tensor(hex_cells_tensor)
-
-    def analyze_wedge_cells(self, cells):
-        wedge_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:6, :]
-        return wedge_data_from_tensor(wedge_cells_tensor)
-
-    def analyze_pyramid_cells(self, cells):
-        pyr_cells_tensor = np.take(self.points, cells, axis=0)[:, 0:5, :]
-        return pyramid_data_from_tensor(pyr_cells_tensor)
-
     def analyze_non_ortho(self) -> None:
+        """For each internal face, calculate the non-orthogonality between the cells.
+        Non-orthogonality is defined as the angle (in degrees) between the vector
+        connecting two neighbor cells centroids, and shared face normal vector.
+        """
         owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
         interior_faces_mask = owner_neighbor[:, 1] != -1
 
@@ -261,15 +290,17 @@ class Analyzer3D:
         owner_centers = np.take(self.cells_centers, owners, axis=0)
         neighbor_centers = np.take(self.cells_centers, neighbors, axis=0)
 
-        sf = self.face_normals[interior_faces_mask]
-        ef = neighbor_centers - owner_centers
+        interior_face_normals = self.face_normals[interior_faces_mask]
+        nei_owner_vectors = neighbor_centers - owner_centers
+        dot_product = dot(nei_owner_vectors, interior_face_normals)
 
-        ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
+        nei_owner_vectors[dot_product < 0] = -nei_owner_vectors[dot_product < 0]
 
-        costheta = dot(ef, sf)
+        costheta = dot_normalize(nei_owner_vectors, interior_face_normals)
         self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
 
     def analyze_adjacents_volume_ratio(self) -> None:
+        """Calculate the area ratio for each two neighbor cells (max/min)"""
         adjacent_cells_vol = np.take(self.cells_volumes, self.interior_faces, axis=0)
         self.adj_ratio = np.max(
             [
