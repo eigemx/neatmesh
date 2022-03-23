@@ -1,26 +1,26 @@
+"""neatmesh 2D & 3D mesh readers"""
+# pylint: disable=too-few-public-methods, too-many-instance-attributes
 from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import (is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d,
-                     meshio_type_to_alpha)
+from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
 from .exceptions import InvalidMeshException, NonSupportedElement
 
 
+# pylint: disable=unused-private-member
 class MeshReader:
+    """Base class for readers, do not use directly"""
+
     def __init__(self, mesh: meshio.Mesh) -> None:
         self.mesh = mesh
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
-    def __check_mesh(self) -> None:
-        pass
-
-    def __process_mesh(self) -> None:
-        pass
-
 
 class MeshReader2D(MeshReader):
+    """A 2D mesh reader"""
+
     def __init__(self, mesh: meshio.Mesh) -> None:
         super().__init__(mesh)
 
@@ -42,6 +42,7 @@ class MeshReader2D(MeshReader):
         self.__process_mesh()
 
     def __check_mesh(self):
+        """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_faces = 0
         self.cell_blocks = []
 
@@ -61,6 +62,7 @@ class MeshReader2D(MeshReader):
             raise InvalidMeshException("No 2D elements were found in mesh")
 
     def __process_mesh(self) -> None:
+        """Get edges of each 2D cell, and assign owner/neighbor of each edge"""
         for cell_block in self.cell_blocks:
             faces = cell_block.data
             face_type = meshio_type_to_alpha[cell_block.type]
@@ -94,6 +96,8 @@ class MeshReader2D(MeshReader):
 
 
 class MeshReader3D(MeshReader):
+    """A 3D mesh reader"""
+
     def __init__(self, mesh: meshio.Mesh) -> None:
         super().__init__(mesh)
 
@@ -118,6 +122,7 @@ class MeshReader3D(MeshReader):
         self.__process_mesh()
 
     def __check_mesh(self):
+        """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_cells = 0
         self.cell_blocks = []
 
@@ -137,6 +142,7 @@ class MeshReader3D(MeshReader):
             raise InvalidMeshException("No 3D elements were found in mesh")
 
     def __process_mesh(self) -> None:
+        """Get faces of each 3D cell, and assign owner/neighbor of each face"""
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
@@ -233,6 +239,7 @@ def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
 
 
 def quad_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
+    """Get quadilateral face edges labels"""
     return (
         (face[0], face[1]),
         (face[1], face[2]),
@@ -242,6 +249,7 @@ def quad_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
 
 
 def tri_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
+    """Get triangle face edges labels"""
     return (
         (face[0], face[1]),
         (face[1], face[2]),
@@ -258,6 +266,17 @@ cell_type_to_faces_func: Dict[str, Callable] = {
 
 
 def assign_reader(mesh_file_path: str) -> MeshReader:
+    """Assign a 2D or 3D MeshReader, given the mesh file.
+
+    Args:
+        mesh_file_path (str): Path to mesh file
+
+    Raises:
+        InvalidMeshException: When assign_reader cannot decide mesh dimensions
+
+    Returns:
+        MeshReader: 2D or 3D Reader
+    """
     try:
         mesh = meshio.read(mesh_file_path)
     except meshio.ReadError as exception:
