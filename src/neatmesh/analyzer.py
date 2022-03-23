@@ -43,9 +43,12 @@ class Analyzer2D:
 
         # Add 3rd dimension to points,
         # to use geometry module 3D tri & quad functions
-        self.__3d_points = np.concatenate(
-            [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
-        )
+        if self.points.shape[1] == 2:
+            self.__3d_points = np.concatenate(
+                [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
+            )
+        else:
+            self.__3d_points = self.points
 
         # This translates list of edge tuples, to point coordinates
         self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
