@@ -1,5 +1,4 @@
 import pathlib
-import pytest
 import numpy as np
 
 from neatmesh.analyzer import Analyzer3D
