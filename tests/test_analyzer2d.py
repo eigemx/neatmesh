@@ -1,5 +1,5 @@
 import pathlib
-
+import pytest
 import meshio
 import numpy as np
 
@@ -8,6 +8,8 @@ from neatmesh.reader import assign_reader
 
 this_dir = pathlib.Path(__file__).resolve().parent
 
+
+h5py = pytest.importorskip("h5py")
 
 def test_total_area():
     reader = assign_reader(this_dir / "meshes" / "disc_2d.med")
