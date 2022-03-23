@@ -77,7 +77,9 @@ def quad_data_from_tensor(faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
     return quad_centroids, quad_normals, quad_areas.flatten(), quad_aspect_ratios
 
 
-def tetra_data_from_tensor(tetra_cells_tensor: np.ndarray):
+def tetra_data_from_tensor(
+    tetra_cells_tensor: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
     tetra_centers = np.mean(tetra_cells_tensor, axis=1)
     tetra_vols = (
         np.abs(
@@ -195,5 +197,9 @@ def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
     return hex_centers, hex_vols
 
 
+def dot_normalize(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    return np.sum(x * y, axis=1) / ((norm(x, axis=1) * norm(y, axis=1)))
+
+
 def dot(x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    return np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
+    return np.sum(x * y, axis=1)
