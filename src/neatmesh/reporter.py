@@ -121,7 +121,7 @@ class Reporter:
             )
             self.console.print(panel)
 
-    def report(self, filename: str) -> None:
+    def report(self, rules: Dict[str, float]) -> None:
         pass
 
 
@@ -168,7 +168,7 @@ class Reporter2D(Reporter):
 
     def report(self, rules: Dict[str, float]):
         with self.console.status("Collecting cell types.."):
-            self.analyzer = Analyzer2D(self.mesh)
+            self.analyzer = Analyzer2D(self.mesh)  # type: ignore
             self.analyzer.count_face_types()
 
         with self.console.status("Analyzing faces..."):
@@ -266,7 +266,7 @@ class Reporter3D(Reporter):
 
     def report(self, rules: Dict[str, float]):
         with self.console.status("Collecting cell types.."):
-            self.analyzer = Analyzer3D(self.mesh)
+            self.analyzer = Analyzer3D(self.mesh)  # type: ignore
             self.analyzer.count_cell_types()
 
         with self.console.status("Analyzing faces..."):

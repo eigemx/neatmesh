@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import numpy as np
-from numpy.linalg import norm
 
 from .common import meshio_type_to_alpha
 from .geometry import (
@@ -11,6 +10,7 @@ from .geometry import (
     tetra_data_from_tensor,
     tri_data_from_tensor,
     wedge_data_from_tensor,
+    dot,
 )
 from .reader import MeshReader2D, MeshReader3D
 
@@ -25,6 +25,28 @@ class Analyzer2D:
         self.n_edges = len(reader.edges)
         self.n_faces = reader.n_faces
 
+        self.n_quad = 0
+        self.n_tri = 0
+
+        self.face_centers: np.ndarray = np.array([]).reshape(0, 3)
+        self.face_areas: np.ndarray = np.array([])
+        self.face_aspect_ratios: np.ndarray = np.array([])
+
+        # Add 3rd dimension to points,
+        # to use geometry module 3D tri & quad functions
+        self.__3d_points = np.concatenate(
+            [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
+        )
+
+        # This translates list of edge tuples, to point coordinates
+        self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
+
+        self.__interior_edges = np.array([])
+        self.n_boundary_edges: int = 0
+
+        self.non_ortho = np.array([])
+        self.adj_ratio = np.array([])
+
     def duplicate_nodes_count(self) -> int:
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
@@ -38,9 +60,6 @@ class Analyzer2D:
         )
 
     def count_face_types(self) -> None:
-        self.n_quad = 0
-        self.n_tri = 0
-
         for cell_block in self.reader.cell_blocks:
             alpha_face_type = meshio_type_to_alpha[cell_block.type]
             if alpha_face_type == "quad":
@@ -50,18 +69,6 @@ class Analyzer2D:
                 self.n_tri += len(cell_block.data)
 
     def analyze_faces(self) -> None:
-        self.face_centers = np.array([]).reshape(0, 3)
-        self.face_areas = np.array([])
-        self.face_aspect_ratios = np.array([])
-
-        # Add points 3rd dimension, to use same geometry module tri & quad functions
-        self.__3d_points = np.concatenate(
-            [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
-        )
-
-        # This translates list of edge tuples, to point coordinates
-        self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
-
         for cell_block in self.reader.cell_blocks:
             face_type = meshio_type_to_alpha[cell_block.type]
             faces_tensor = np.take(self.__3d_points, cell_block.data, axis=0)
@@ -86,11 +93,11 @@ class Analyzer2D:
         interior_edges_mask = owner_neighbor[:, 1] != -1
 
         # We will need interior_edges later in adjacent cells volume ratio
-        self.interior_edges = owner_neighbor[interior_edges_mask]
+        self.__interior_edges = owner_neighbor[interior_edges_mask]
 
-        self.n_boundary_edges = self.n_edges - self.interior_edges.shape[0]
+        self.n_boundary_edges = self.n_edges - self.__interior_edges.shape[0]
 
-        owners, neighbors = self.interior_edges[:, 0], self.interior_edges[:, 1]
+        owners, neighbors = self.__interior_edges[:, 0], self.__interior_edges[:, 1]
         owner_centers = np.take(self.face_centers, owners, axis=0)
         neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
 
@@ -98,13 +105,12 @@ class Analyzer2D:
         edges_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
 
         ef = neighbor_centers - owner_centers
-        dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
 
         costheta = np.abs(dot(ef, edges_vectors))
         self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
 
     def analyze_adjacents_area_ratio(self) -> None:
-        adjacent_faces_areas = np.take(self.face_areas, self.interior_edges, axis=0)
+        adjacent_faces_areas = np.take(self.face_areas, self.__interior_edges, axis=0)
         self.adj_ratio = np.max(
             [
                 adjacent_faces_areas[:, 0] / adjacent_faces_areas[:, 1],
@@ -126,6 +132,31 @@ class Analyzer3D:
 
         self.n_cells = reader.n_cells
 
+        self.hex_count = 0
+        self.tetra_count = 0
+        self.wedge_count = 0
+        self.pyramid_count = 0
+        self.has_tri = False
+        self.has_quad = False
+
+        self.face_centers = np.zeros(shape=(self.n_faces, 3))
+        self.face_normals = np.zeros(shape=(self.n_faces, 3))
+        self.face_areas = np.zeros(shape=(self.n_faces,))
+        self.face_aspect_ratios = np.zeros(shape=(self.n_faces,))
+
+        self.n_tri = 0
+        self.n_quad = 0
+
+        self.cells_centers: np.ndarray = np.array([]).reshape(0, 3)
+        self.cells_volumes: np.ndarray = np.array([])
+
+        self.interior_faces = np.array([])
+        self.n_boundary_faces: int = 0
+
+        self.non_ortho = np.array([])
+        self.adj_ratio = np.array([])
+
+
     def duplicate_nodes_count(self) -> int:
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
@@ -139,13 +170,6 @@ class Analyzer3D:
         )
 
     def count_cell_types(self) -> None:
-        self.hex_count = 0
-        self.tetra_count = 0
-        self.wedge_count = 0
-        self.pyramid_count = 0
-        self.has_tri = False
-        self.has_quad = False
-
         for cell_block in self.reader.cell_blocks:
             alpha_cell_type = meshio_type_to_alpha[cell_block.type]
             if alpha_cell_type == "hexahedron":
@@ -167,44 +191,33 @@ class Analyzer3D:
                 self.has_tri = True
 
     def analyze_faces(self):
-        self.face_centers = np.zeros(shape=(self.n_faces, 3))
-        self.face_normals = np.zeros(shape=(self.n_faces, 3))
-        self.face_areas = np.zeros(shape=(self.n_faces,))
-        self.face_aspect_ratios = np.zeros(shape=(self.n_faces,))
-
-        self.n_tri = 0
-        self.n_quad = 0
-
         if self.has_tri:
-            self.tri_mask = self.faces[:, -1] == -1
-            tri_faces = self.faces[self.tri_mask][:, :-1]
+            tri_mask = self.faces[:, -1] == -1
+            tri_faces = self.faces[tri_mask][:, :-1]
             tri_faces_tensor = np.take(self.points, tri_faces, axis=0)[:, 0:3, :]
 
             (
-                self.face_centers[self.tri_mask],
-                self.face_normals[self.tri_mask],
-                self.face_areas[self.tri_mask],
-                self.face_aspect_ratios[self.tri_mask],
+                self.face_centers[tri_mask],
+                self.face_normals[tri_mask],
+                self.face_areas[tri_mask],
+                self.face_aspect_ratios[tri_mask],
             ) = tri_data_from_tensor(tri_faces_tensor)
             self.n_tri += len(tri_faces)
 
         if self.has_quad:
-            self.quad_mask = self.faces[:, -1] != -1
+            quad_mask = self.faces[:, -1] != -1
             quad_faces = self.faces[self.quad_mask]
 
             quad_faces_tensor = np.take(self.points, quad_faces, axis=0)[:, 0:5, :]
             (
-                self.face_centers[self.quad_mask],
-                self.face_normals[self.quad_mask],
-                self.face_areas[self.quad_mask],
-                self.face_aspect_ratios[self.quad_mask],
+                self.face_centers[quad_mask],
+                self.face_normals[quad_mask],
+                self.face_areas[quad_mask],
+                self.face_aspect_ratios[quad_mask],
             ) = quad_data_from_tensor(quad_faces_tensor)
             self.n_quad += len(quad_faces)
 
     def analyze_cells(self) -> None:
-        self.cells_centers: np.ndarray = np.array([]).reshape(0, 3)
-        self.cells_volumes: np.ndarray = np.array([])
-
         cell_type_handler_map = {
             "hexahedron": self.analyze_hex_cells,
             "tetra": self.analyze_tetra_cells,
@@ -251,7 +264,6 @@ class Analyzer3D:
         sf = self.face_normals[interior_faces_mask]
         ef = neighbor_centers - owner_centers
 
-        dot = lambda x, y: np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
         ef[dot(ef, sf) < 0] = -ef[dot(ef, sf) < 0]
 
         costheta = dot(ef, sf)

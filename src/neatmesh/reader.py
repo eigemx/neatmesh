@@ -74,7 +74,7 @@ class MeshReader2D(MeshReader):
                 for edge in edges:
                     f_edge = frozenset(edge)
                     # have we met `edge` before?
-                    if not f_edge in self.__edges_sets:
+                    if f_edge not in self.__edges_sets:
                         self.edge_to_edgeid[f_edge] = self.__current_edgeid
                         self.edges.append(edge)
                         self.__edges_sets.add(f_edge)
@@ -146,7 +146,7 @@ class MeshReader3D(MeshReader):
                 for face in faces:
                     fface = frozenset(face)
                     # have we met `face` before?
-                    if not fface in self.__faces_set:
+                    if fface not in self.__faces_set:
                         self.face_to_faceid[fface] = self.__current_faceid
                         self.__faces_set.add(fface)
 

@@ -21,7 +21,7 @@ def version() -> str:
 
 
 def header_str():
-    return f"""
+    return rf"""
                      __                      __
    ____  ___  ____ _/ /_____ ___  ___  _____/ /_
   / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   Version: {version()}

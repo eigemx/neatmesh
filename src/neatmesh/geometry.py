@@ -193,3 +193,7 @@ def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
     hex_vols = x * y * z
 
     return hex_centers, hex_vols
+
+
+def dot(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    return np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
