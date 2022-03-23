@@ -1,6 +1,6 @@
 import pathlib
-import meshio
 
+import meshio
 import numpy as np
 
 from neatmesh.analyzer import Analyzer2D

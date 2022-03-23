@@ -1,3 +1,4 @@
+"""Report analyzers output to console"""
 import os
 from typing import Dict, List, Tuple
 
@@ -14,17 +15,25 @@ from neatmesh.reader import MeshReader
 
 
 class Reporter:
+    """Base class for 2D & 3D reporters"""
+
     def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
         self.console = console
         self.mesh = mesh
         self.filename = filename
         self.concerns: List[str] = []
 
-    def report_elements_count(self):
-        pass
-
     @staticmethod
     def stats_from_array(array: np.ndarray) -> Tuple[float, ...]:
+        """Calculate maximum, minimum, mean and standard deviation for a
+        given numpy array
+
+        Args:
+            array (np.ndarray): Input array of shape (n,)
+
+        Returns:
+            Tuple[float, ...]: max., min., mean and std.
+        """
         arr_max = np.nanmax(array)
         arr_min = np.nanmin(array)
         arr_mean = np.nanmean(array)
@@ -39,13 +48,14 @@ class Reporter:
         stats_table.add_column("", justify="left")
         stats_table.add_column("Max.", justify="right")
         stats_table.add_column("Min.", justify="right")
-        stats_table.add_column("Mean.", justify="right")
+        stats_table.add_column("Mean", justify="right")
         stats_table.add_column("Std.", justify="right")
         stats_table.add_column("", justify="right")
 
         for metric_name, metric_dict in quality_metrics_dict.items():
             # Avoid calling stats_from_array in case input array is empty
-            # this might occur in case of one cell mesh, where analyzer.adj_ratio is empty.
+            # this might occur in case of one cell mesh,
+            # where analyzer.adj_ratio is empty.
             if metric_dict["array"].shape[0] == 0:
                 continue
             _max, _min, _mean, _std = self.stats_from_array(metric_dict["array"])
@@ -59,7 +69,8 @@ class Reporter:
                         metric_dict["array"] > metric_dict["max"]
                     )
                     self.concerns.append(
-                        f"* Found {n_failed} elements with '{metric_name}' greater than "
+                        f"* Found {n_failed} elements with "
+                        f"'{metric_name}' greater than "
                         f" max. value {metric_dict['max']}."
                     )
 
@@ -120,9 +131,6 @@ class Reporter:
                 title_align="left",
             )
             self.console.print(panel)
-
-    def report(self, rules: Dict[str, float]) -> None:
-        pass
 
 
 class Reporter2D(Reporter):

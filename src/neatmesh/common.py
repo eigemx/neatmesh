@@ -1,8 +1,8 @@
-from typing import Final
+"""neatmesh common constants and functions"""
 
 from meshio import Mesh
 
-meshio_3d: Final = {
+meshio_3d = {
     "tetra",
     "tetra10",
     "hexahedron",
@@ -17,7 +17,7 @@ meshio_3d: Final = {
     "pyramid14",
 }
 
-meshio_type_to_alpha: Final = {
+meshio_type_to_alpha = {
     "vertex": "vertex",
     "line": "line",
     "line3": "line",
@@ -41,12 +41,12 @@ meshio_type_to_alpha: Final = {
     "pyramid14": "pyramid",
 }
 
-meshio_2d: Final = {
+meshio_2d = {
     "triangle",
     "quad",
 }
 
-meshio_1d: Final = {
+meshio_1d = {
     "vertex",
     "line",
     "line3",

@@ -1,10 +1,21 @@
+"""geometry related functions for faces and cells"""
+# pylint: disable=invalid-name, too-many-locals
 from typing import Tuple
 
 import numpy as np
 from numpy.linalg import det, norm
 
 
-def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
+def tri_data_from_tensor(tri_faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """Calculate triangular faces centers, normal, area and aspect ratios.
+
+    Args:
+        tri_faces_tensor (np.ndarray): Triangle faces tensor
+        shape of `tri_faces_tensor` is (n_faces, 3 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers, normals, areas and aspect ratios.
+    """
     tri_centers = np.mean(tri_faces_tensor, axis=1)
     tri_normals = np.cross(
         tri_faces_tensor[:, 1, :] - tri_faces_tensor[:, 0, :],
@@ -25,25 +36,43 @@ def tri_data_from_tensor(tri_faces_tensor: np.ndarray):
     return tri_centers, tri_normals, tri_areas, tri_aspect_ratios
 
 
-def quad_data_from_tensor(faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+def quad_data_from_tensor(quad_faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """Calculate quad faces centers, normal, area and aspect ratios.
+
+    Args:
+        quad_faces_tensor (np.ndarray): Quad faces tensor
+        shape of `quad_faces_tensor` is (n_faces, 4 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers, normals, areas and aspect ratios.
+    """
     # Quads geometrics centers
-    gc = np.mean(faces_tensor, axis=1)
+    gc = np.mean(quad_faces_tensor, axis=1)
 
     # Quad sub-triangles
     edges = ((0, 1), (1, 2), (2, 3), (3, 0))
 
-    sub_triangles_centroids_unswapped = [None, None, None, None]
-    sub_triangles_normals_unswapped = [None, None, None, None]
+    sub_triangles_centroids_unswapped = []
+    sub_triangles_normals_unswapped = []
 
-    for i, edge in enumerate(edges):
-        sub_triangles_centroids_unswapped[i] = np.mean(
-            [gc, faces_tensor[:, edge[0], :], faces_tensor[:, edge[1], :]], axis=0
+    for edge in edges:
+        sub_triangles_centroids_unswapped.append(
+            np.mean(
+                [
+                    gc,
+                    quad_faces_tensor[:, edge[0], :],
+                    quad_faces_tensor[:, edge[1], :],
+                ],
+                axis=0,
+            )
         )
 
-        sub_triangles_normals_unswapped[i] = np.cross(
-            gc - faces_tensor[:, edge[0], :],
-            faces_tensor[:, edge[1], :] - faces_tensor[:, edge[0], :],
-            axis=1,
+        sub_triangles_normals_unswapped.append(
+            np.cross(
+                gc - quad_faces_tensor[:, edge[0], :],
+                quad_faces_tensor[:, edge[1], :] - quad_faces_tensor[:, edge[0], :],
+                axis=1,
+            )
         )
 
     sub_triangles_centroids = np.swapaxes(
@@ -65,9 +94,9 @@ def quad_data_from_tensor(faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
 
     quad_edges_norms = np.array(
         [
-            norm(faces_tensor[:, 0, :] - faces_tensor[:, 1, :], axis=1),
-            norm(faces_tensor[:, 1, :] - faces_tensor[:, 2, :], axis=1),
-            norm(faces_tensor[:, 2, :] - faces_tensor[:, 3, :], axis=1),
+            norm(quad_faces_tensor[:, 0, :] - quad_faces_tensor[:, 1, :], axis=1),
+            norm(quad_faces_tensor[:, 1, :] - quad_faces_tensor[:, 2, :], axis=1),
+            norm(quad_faces_tensor[:, 2, :] - quad_faces_tensor[:, 3, :], axis=1),
         ]
     )
     quad_aspect_ratios = np.max(quad_edges_norms, axis=0) / np.min(
@@ -80,6 +109,15 @@ def quad_data_from_tensor(faces_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
 def tetra_data_from_tensor(
     tetra_cells_tensor: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
+    """Calculate tetrahedron cells centers and volumes
+
+    Args:
+        tetra_cells_tensor (np.ndarray): Tetrahedron cells tensor
+        shape of `tetra_cells_tensor` is (n_cells, 4 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers and volumes
+    """
     tetra_centers = np.mean(tetra_cells_tensor, axis=1)
     tetra_vols = (
         np.abs(
@@ -98,7 +136,16 @@ def tetra_data_from_tensor(
     return tetra_centers, tetra_vols
 
 
-def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
+def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """Calculate pyramid cells centers and volumes
+
+    Args:
+        pyr_cells_tensor (np.ndarray): Pyramid cells tensor
+        shape of `pyr_cells_tensor` is (n_cells, 4 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers and volumes
+    """
     # Pyramid base area and centroid
     quad_base_tensor = pyr_cells_tensor[:, 0:-1, :]
     quad_centroids, quad_normals, quad_areas, _ = quad_data_from_tensor(
@@ -119,7 +166,16 @@ def pyramid_data_from_tensor(pyr_cells_tensor: np.ndarray):
     return pyramids_centroids, pyramids_vol
 
 
-def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
+def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """Calculate wedge cells centers and volumes
+
+    Args:
+        wedge_data_from_tensor (np.ndarray): Wedge cells tensor
+        shape of `wedge_data_from_tensor` is (n_cells, 6 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers and volumes
+    """
     gc = np.mean(wedge_cells_tensor, axis=1)[:, np.newaxis, :]
     n_wedge = wedge_cells_tensor.shape[0]
     wedges_vol = np.zeros(shape=(n_wedge, 1))
@@ -185,8 +241,16 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray):
     return wedges_center, wedges_vol.flatten()
 
 
-def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
-    # TODO: Check if non-regular hex might be allowed by meshio
+def hex_data_from_tensor(hex_cells_tensor: np.ndarray) -> Tuple[np.ndarray, ...]:
+    """Calculate hexahedron cells centers and volumes
+
+    Args:
+        hex_cells_tensor (np.ndarray): Hexahedron cells tensor
+        shape of `hex_cells_tensor` is (n_cells, 8 (no. points), 3)
+
+    Returns:
+        Tuple[np.ndarray, ...]: centers and volumes
+    """
     x = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 1, :], axis=1)
     y = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 3, :], axis=1)
     z = norm(hex_cells_tensor[:, 0, :] - hex_cells_tensor[:, 4, :], axis=1)
@@ -198,8 +262,10 @@ def hex_data_from_tensor(hex_cells_tensor: np.ndarray):
 
 
 def dot_normalize(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Element wise dot product with normalization"""
     return np.sum(x * y, axis=1) / ((norm(x, axis=1) * norm(y, axis=1)))
 
 
 def dot(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Element wise dot product"""
     return np.sum(x * y, axis=1)
