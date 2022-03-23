@@ -1,5 +1,7 @@
+"""neatmesh cli entry point"""
 import argparse
 import os
+import sys
 from pathlib import Path
 
 import toml
@@ -9,7 +11,9 @@ from neatmesh.reader import MeshReader3D, assign_reader
 from neatmesh.reporter import Reporter2D, Reporter3D
 
 
+# pylint: disable=import-outside-toplevel
 def version() -> str:
+    """get neatmesh version"""
     try:
         from importlib import metadata
 
@@ -21,6 +25,7 @@ def version() -> str:
 
 
 def header_str():
+    """neatmesh logo, version and license header"""
     return rf"""
                      __                      __
    ____  ___  ____ _/ /_____ ___  ___  _____/ /_
@@ -31,12 +36,14 @@ def header_str():
 """
 
 
-def error(msg: str):
+def error(msg: str) -> None:
+    """display fatal error message and exit"""
     Console(stderr=True).print(f"[red][bold]Error:[/bold] {msg}[/red]")
-    exit(-1)
+    sys.exit(-1)
 
 
 def main():
+    """cli entry points"""
     print(header_str())
 
     parser = argparse.ArgumentParser()
