@@ -1,5 +1,4 @@
 import pathlib
-import pytest
 import meshio
 import numpy as np
 
