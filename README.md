@@ -12,11 +12,14 @@ neatmesh is a 2D/3D finite volume/element mesh quality inspector, neatmesh works
 </p>
 
 ## Installation
-Install with `pip install neatmesh`
+Install with:
+
+    pip install neatmesh
 
 ## Usage
 Using neatmesh is simple:
-`neatmesh my_awesome_mesh.su2`
+
+    neatmesh my_awesome_mesh.su2
 
 ### Quality Rules
 neatmesh will look for a quality rule file in current working directory, `neatmesh.toml` or `quality.toml` or `my_awesome_mesh.toml`. A quality rule file sets maximum values for quality metrics calculated by neatmesh, for example this is the content of a typical `neatmesh.toml` file:
@@ -27,6 +30,7 @@ neatmesh will look for a quality rule file in current working directory, `neatme
     max_neighbor_area_ratio = 3
 
 In case no quality rules file was present, neatmesh will use default max. values:
+
     max_non_orhto = 60
     max_face_aspect_ratio = 20
     max_neighbor_volume_ratio = 15
