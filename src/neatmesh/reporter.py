@@ -100,6 +100,7 @@ class Reporter:
         )
 
         self.console.print(panel)
+        self.console.print()
 
     def report_file_size(self, filename: str):
         fsize = humanize.naturalsize(os.path.getsize(filename))
@@ -123,6 +124,8 @@ class Reporter:
 
             for concern in self.concerns:
                 concerns_table.add_row(f"[red]{concern}")
+            
+            concerns_table.add_row("")
 
             panel = Panel(
                 concerns_table,
@@ -131,6 +134,7 @@ class Reporter:
                 title_align="left",
             )
             self.console.print(panel)
+            self.console.print()
 
 
 class Reporter2D(Reporter):
