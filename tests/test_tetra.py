@@ -1,12 +1,14 @@
 import pathlib
-import pytest
+
 import numpy as np
+import pytest
 
 from neatmesh.analyzer import Analyzer3D
 from neatmesh.geometry import tetra_data_from_tensor
 from neatmesh.reader import assign_reader
 
 h5py = pytest.importorskip("h5py")
+
 
 def test_tetra_one_cell():
     points = np.array(
