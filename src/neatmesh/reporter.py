@@ -124,7 +124,7 @@ class Reporter:
 
             for concern in self.concerns:
                 concerns_table.add_row(f"[red]{concern}")
-            
+
             concerns_table.add_row("")
 
             panel = Panel(
