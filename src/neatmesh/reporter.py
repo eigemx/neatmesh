@@ -317,7 +317,7 @@ class Reporter3D(Reporter):
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
-                "max": rules.get("max_non_orhto", 65),
+                "max": rules.get("max_non_orhto", 60),
             },
             "Adjacent Cells Volume Ratio": {
                 "array": self.analyzer.adj_ratio,
