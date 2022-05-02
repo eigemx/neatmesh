@@ -96,7 +96,7 @@ class Reporter:
             stats_table,
             title="[yellow bold]Quality Stats.",
             title_align="left",
-            expand=False,
+            expand=True,
         )
 
         self.console.print(panel)
@@ -129,7 +129,7 @@ class Reporter:
 
             panel = Panel(
                 concerns_table,
-                expand=False,
+                expand=True,
                 title="[yellow bold]Concerns",
                 title_align="left",
             )
