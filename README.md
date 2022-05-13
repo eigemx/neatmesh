@@ -7,9 +7,13 @@ Mesh Quality Inspector
 
 
 neatmesh is a 2D/3D finite volume/element mesh quality inspector, neatmesh works with all formats supported by [meshio](https://github.com/nschloe/meshio).
+
+neatmesh is in early active development stage, and all sort of contributions are welcome (specially if you're new to open source contribution! ☺️)
+
 <p align="center">
     <img alt="neatmesh" src="https://media.githubusercontent.com/media/eigenemara/neatmesh/main/screenshots/cli.png" width="90%">
 </p>
+
 
 ## Installation
 Install with:
