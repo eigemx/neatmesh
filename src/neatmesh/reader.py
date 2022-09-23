@@ -6,7 +6,14 @@ import meshio
 
 from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
 from .exceptions import InvalidMeshException, NonSupportedElement
-
+from .geometry import (
+    hex_cell_faces,
+    tetra_cell_faces,
+    pyramid_cell_faces,
+    wedge_cell_faces,
+    quad_face_edges,
+    tri_face_edges,
+)
 
 # pylint: disable=unused-private-member
 class MeshReader:
@@ -170,91 +177,6 @@ class MeshReader3D(MeshReader):
                         self.faceid_to_cellid[face_id][1] = self.__current_cellid
 
                 self.__current_cellid += 1
-
-
-def hex_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 6 faces of a hexahedron cell, using meshio nodes ordering
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[1], cell[2], cell[6], cell[5]),
-        (cell[0], cell[4], cell[7], cell[3]),
-        (cell[3], cell[7], cell[6], cell[2]),
-        (cell[0], cell[1], cell[5], cell[4]),
-        (cell[4], cell[5], cell[6], cell[7]),
-        (cell[0], cell[3], cell[2], cell[1]),
-    )
-
-
-def wedge_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 5 faces of a wedge cell,
-    using meshio nodes ordering for wedge
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[0], cell[2], cell[1], -1),
-        (cell[3], cell[4], cell[5], -1),
-        (cell[3], cell[0], cell[1], cell[4]),
-        (cell[0], cell[3], cell[5], cell[2]),
-        (cell[1], cell[2], cell[5], cell[4]),
-    )
-
-
-def tetra_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 4 faces of a tetrahedral cell,
-    using meshio nodes ordering for tetra
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[0], cell[2], cell[1], -1),
-        (cell[1], cell[2], cell[3], -1),
-        (cell[0], cell[1], cell[3], -1),
-        (cell[0], cell[3], cell[2], -1),
-    )
-
-
-def pyramid_cell_faces(cell: List) -> Tuple[Tuple[int, ...], ...]:
-    """Returns coordinates of 4 faces of a tetrahedral cell,
-    using meshio nodes ordering for pyramid
-    Args:
-        cell (List): list of points defining the cell
-    Returns:
-        List[List]: list of list of faces points labels
-    """
-    return (
-        (cell[2], cell[1], cell[0], cell[3]),
-        (cell[2], cell[3], cell[4], -1),
-        (cell[1], cell[4], cell[0], -1),
-        (cell[3], cell[0], cell[4], -1),
-    )
-
-
-def quad_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
-    """Get quadilateral face edges labels"""
-    return (
-        (face[0], face[1]),
-        (face[1], face[2]),
-        (face[2], face[3]),
-        (face[3], face[0]),
-    )
-
-
-def tri_face_edges(face: List) -> Tuple[Tuple[int, ...], ...]:
-    """Get triangle face edges labels"""
-    return (
-        (face[0], face[1]),
-        (face[1], face[2]),
-        (face[2], face[0]),
-    )
 
 
 cell_type_to_faces_func: Dict[str, Callable] = {
