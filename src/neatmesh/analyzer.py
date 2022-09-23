@@ -40,8 +40,9 @@ class Analyzer2D:
         self.face_centers: np.ndarray = np.array([]).reshape(0, 3)
         self.face_areas: np.ndarray = np.array([])
         self.face_aspect_ratios: np.ndarray = np.array([])
+        self.owner_neighbor: np.array = np.array([])
 
-        # Add 3rd dimension to points,
+        # add 3rd dimension to points,
         # to use geometry module 3D tri & quad functions
         if self.points.shape[1] == 2:
             self.__3d_points = np.concatenate(
@@ -50,7 +51,7 @@ class Analyzer2D:
         else:
             self.__3d_points = self.points
 
-        # This translates list of edge tuples, to point coordinates
+        # transform list of edge tuples, to point coordinates
         self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
 
         self.__interior_edges = np.array([])
@@ -111,13 +112,13 @@ class Analyzer2D:
         # first column is the index of the owner faces,
         # second column is the index of neighbor faces.
         # second column contains '-1' for boudnary edges.
-        owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
+        self.owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
 
         # filter our boundary edges
-        interior_edges_mask = owner_neighbor[:, 1] != -1
+        interior_edges_mask = self.owner_neighbor[:, 1] != -1
 
         # We will need interior_edges later in adjacent cells volume ratio
-        self.__interior_edges = owner_neighbor[interior_edges_mask]
+        self.__interior_edges = self.owner_neighbor[interior_edges_mask]
 
         self.n_boundary_edges = self.n_edges - self.__interior_edges.shape[0]
 
@@ -281,11 +282,11 @@ class Analyzer3D:
         Non-orthogonality is defined as the angle (in degrees) between the vector
         connecting two neighbor cells centroids, and shared face normal vector.
         """
-        owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
-        interior_faces_mask = owner_neighbor[:, 1] != -1
+        self.owner_neighbor = np.asarray(list(self.reader.faceid_to_cellid.values()))
+        interior_faces_mask = self.owner_neighbor[:, 1] != -1
 
         # We will need interior_faces later in adjacent cells volume ratio
-        self.interior_faces = owner_neighbor[interior_faces_mask]
+        self.interior_faces = self.owner_neighbor[interior_faces_mask]
 
         self.n_boundary_faces = self.n_faces - self.interior_faces.shape[0]
 
