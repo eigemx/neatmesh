@@ -11,7 +11,7 @@ neatmesh is a 2D/3D finite volume/element mesh quality inspector, neatmesh works
 neatmesh is in early active development stage, and all sort of contributions are welcome (specially if you're new to open source contribution! ☺️)
 
 <p align="center">
-    <img alt="neatmesh" src="https://media.githubusercontent.com/media/eigenemara/neatmesh/main/screenshots/cli.png" width="90%">
+    <img alt="neatmesh" src="https://raw.githubusercontent.com/eigenemara/neatmesh/main/screenshots/cli.png" width="90%">
 </p>
 
 
@@ -32,7 +32,7 @@ neatmesh will report file size, mesh bounding box, mesh dimensionality, points c
 3. **Cell Volume**: volume of 3D cell, current supported cell types: hexahedron, tetrahedron, wedge and pyramid.
 4. **Non-Orthogonality**: angle in degrees between (a) vector connecting two elements centers NP and (b) normal vector to the shared face or edge between the elements 
 
-![Non-ortho example](https://raw.githubusercontent.com/eigenemara/neatmesh/main/screenshots/nonortho.png)
+![Non-ortho example](https://media.githubusercontent.com/media/eigenemara/neatmesh/main/screenshots/nonortho.png)
 
 Source: [Introduction to Computational Fluid Dynamics: Governing Equations, Turbulence Modeling Introduction and Finite Volume Discretization Basics. - Joel Guerrero](https://www.researchgate.net/publication/280385280_Introduction_to_Computational_Fluid_Dynamics_Governing_Equations_Turbulence_Modeling_Introduction_and_Finite_Volume_Discretization_Basics)
 
