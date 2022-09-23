@@ -7,8 +7,9 @@ from pathlib import Path
 import toml
 from rich.console import Console
 
-from neatmesh.reader import MeshReader3D, assign_reader
-from neatmesh.reporter import Reporter2D, Reporter3D
+from .reader import MeshReader3D, assign_reader
+from .reporter import Reporter2D, Reporter3D
+from .exceptions import InvalidMeshException
 
 
 # pylint: disable=import-outside-toplevel
@@ -60,7 +61,10 @@ def main():
     console = Console()
 
     with console.status("Reading mesh..."):
-        mesh = assign_reader(filename)
+        try:
+            mesh = assign_reader(filename)
+        except InvalidMeshException as e:
+            error(f"{e}")
 
     if isinstance(mesh, MeshReader3D):
         reporter = Reporter3D(console, mesh, filename)
