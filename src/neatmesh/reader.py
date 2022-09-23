@@ -24,6 +24,12 @@ class MeshReader:
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
+    def __check_mesh() -> None:
+        return
+
+    def __process_mesh() -> None:
+        return
+
 
 class MeshReader2D(MeshReader):
     """A 2D mesh reader"""
@@ -48,7 +54,7 @@ class MeshReader2D(MeshReader):
         self.__check_mesh()
         self.__process_mesh()
 
-    def __check_mesh(self):
+    def __check_mesh(self) -> None:
         """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_faces = 0
         self.cell_blocks = []
@@ -128,7 +134,7 @@ class MeshReader3D(MeshReader):
         self.__check_mesh()
         self.__process_mesh()
 
-    def __check_mesh(self):
+    def __check_mesh(self) -> None:
         """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_cells = 0
         self.cell_blocks = []
