@@ -40,7 +40,7 @@ class Analyzer2D:
         self.face_centers: np.ndarray = np.array([]).reshape(0, 3)
         self.face_areas: np.ndarray = np.array([])
         self.face_aspect_ratios: np.ndarray = np.array([])
-        self.owner_neighbor: np.array = np.array([])
+        self.owner_neighbor: np.ndarray = np.array([])
 
         # add 3rd dimension to points,
         # to use geometry module 3D tri & quad functions
@@ -54,11 +54,11 @@ class Analyzer2D:
         # transform list of edge tuples, to point coordinates
         self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
 
-        self.__interior_edges = np.array([])
+        self.__interior_edges: np.ndarray = np.array([])
         self.n_boundary_edges: int = 0
 
-        self.non_ortho = np.array([])
-        self.adj_ratio = np.array([])
+        self.non_ortho: np.ndarray = np.array([])
+        self.adj_ratio: np.ndarray = np.array([])
 
     def duplicate_nodes_count(self) -> int:
         """Count number of duplicate points/nodes"""
