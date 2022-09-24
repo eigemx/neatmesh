@@ -27,9 +27,9 @@ from .geometry import (
 class MeshReader:
     """Base class for readers, do not use directly"""
 
-    def __init__(self, mesh: meshio.Mesh) -> None:
-        self.mesh = mesh
-        self.points = self.mesh.points
+    def __init__(self, meshio_mesh: meshio.Mesh) -> None:
+        self.meshio_mesh = meshio_mesh
+        self.points = self.meshio_mesh.points
         self.n_points = len(self.points)
 
     def _check_mesh(self) -> None:
@@ -42,8 +42,8 @@ class MeshReader:
 class MeshReader2D(MeshReader):
     """A 2D mesh reader"""
 
-    def __init__(self, mesh: meshio.Mesh) -> None:
-        super().__init__(mesh)
+    def __init__(self, meshio_mesh: meshio.Mesh) -> None:
+        super().__init__(meshio_mesh)
 
         # list of points labels of processed edges
         self.edges: List[Tuple] = []
@@ -67,7 +67,7 @@ class MeshReader2D(MeshReader):
         self.n_faces = 0
         self.cell_blocks = []
 
-        for cell_block in self.mesh.cells:
+        for cell_block in self.meshio_mesh.cells:
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
 
             if ctype in meshio_2d_elements and cell_block.data.size > 0:
@@ -150,7 +150,7 @@ class MeshReader3D(MeshReader):
         self.n_cells = 0
         self.cell_blocks = []
 
-        for cell_block in self.mesh.cells:
+        for cell_block in self.meshio_mesh.cells:
             # look up cell_block type, and return "unsupported" if not found
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
 
@@ -176,7 +176,7 @@ class MeshReader3D(MeshReader):
 
             for cell in cells:
                 cell_type = meshio_type_to_alpha[cell_block.type]
-                get_faces_fn = _cell_type_to_faces_fn_map[cell_type]
+                get_faces_fn = cell_type_to_faces_fn_map[cell_type]
                 faces = get_faces_fn(cell)
 
                 for face in faces:
@@ -201,7 +201,7 @@ class MeshReader3D(MeshReader):
                 self.__current_cellid += 1
 
 
-_cell_type_to_faces_fn_map: Dict[str, Callable] = {
+cell_type_to_faces_fn_map: Dict[str, Callable] = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
     "wedge": wedge_cell_faces,

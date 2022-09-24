@@ -10,8 +10,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
-from neatmesh.analyzer import Analyzer2D, Analyzer3D
-from neatmesh.reader import MeshReader
+from .analyzer import Analyzer2D, Analyzer3D
+from .reader import MeshReader
 
 
 class Reporter:
