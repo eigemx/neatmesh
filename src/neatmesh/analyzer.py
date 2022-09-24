@@ -30,7 +30,6 @@ class Analyzer2D:
 
         self.points = self.reader.points
         self.n_points = reader.n_points
-
         self.n_edges = len(reader.edges)
         self.n_faces = reader.n_faces
 
@@ -42,8 +41,7 @@ class Analyzer2D:
         self.face_aspect_ratios: np.ndarray = np.array([])
         self.owner_neighbor: np.ndarray = np.array([])
 
-        # add 3rd dimension to points,
-        # to use geometry module 3D tri & quad functions
+        # add 3rd dimension to points, to use geometry module 3D tri & quad functions
         if self.points.shape[1] == 2:
             self.__3d_points = np.concatenate(
                 [self.points, np.zeros(shape=(self.n_points, 1))], axis=1
@@ -51,10 +49,11 @@ class Analyzer2D:
         else:
             self.__3d_points = self.points
 
-        # transform list of edge tuples, to point coordinates
+        # transform list of edge tuples, to array of point coordinates
+        # output shape = (n_internal_edges, 2, 3)
         self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
 
-        self.__interior_edges: np.ndarray = np.array([])
+        self.__interior_edges_shared_faces: np.ndarray = np.array([])
         self.n_boundary_edges: int = 0
 
         self.non_ortho: np.ndarray = np.array([])
@@ -77,11 +76,11 @@ class Analyzer2D:
     def count_face_types(self) -> None:
         """Count and update the number of quad and triangle faces"""
         for cell_block in self.reader.cell_blocks:
-            alpha_face_type = meshio_type_to_alpha[cell_block.type]
-            if alpha_face_type == "quad":
+            face_type_str = meshio_type_to_alpha[cell_block.type]
+            if face_type_str == "quad":
                 self.n_quad += len(cell_block.data)
 
-            elif alpha_face_type == "triangle":
+            elif face_type_str == "triangle":
                 self.n_tri += len(cell_block.data)
 
     def analyze_faces(self) -> None:
@@ -111,18 +110,23 @@ class Analyzer2D:
         # owner_neighbor is 2D matrix of shape (n_interior_edges, 2)
         # first column is the index of the owner faces,
         # second column is the index of neighbor faces.
-        # second column contains '-1' for boudnary edges.
+        # second column contains '-1' for boudnary edges (no neighbor faces).
         self.owner_neighbor = np.asarray(list(self.reader.edgeid_to_faceid.values()))
 
         # filter our boundary edges
         interior_edges_mask = self.owner_neighbor[:, 1] != -1
 
         # We will need interior_edges later in adjacent cells volume ratio
-        self.__interior_edges = self.owner_neighbor[interior_edges_mask]
+        self.__interior_edges_shared_faces = self.owner_neighbor[interior_edges_mask]
 
-        self.n_boundary_edges = self.n_edges - self.__interior_edges.shape[0]
+        self.n_boundary_edges = (
+            self.n_edges - self.__interior_edges_shared_faces.shape[0]
+        )
 
-        owners, neighbors = self.__interior_edges[:, 0], self.__interior_edges[:, 1]
+        owners, neighbors = (
+            self.__interior_edges_shared_faces[:, 0],
+            self.__interior_edges_shared_faces[:, 1],
+        )
         owner_centers = np.take(self.face_centers, owners, axis=0)
         neighbor_centers = np.take(self.face_centers, neighbors, axis=0)
 
@@ -140,7 +144,9 @@ class Analyzer2D:
 
     def analyze_adjacents_area_ratio(self) -> None:
         """Calculate the area ratio for each two neighbor faces (max/min)"""
-        adjacent_faces_areas = np.take(self.face_areas, self.__interior_edges, axis=0)
+        adjacent_faces_areas = np.take(
+            self.face_areas, self.__interior_edges_shared_faces, axis=0
+        )
         self.adj_ratio = np.max(
             [
                 adjacent_faces_areas[:, 0] / adjacent_faces_areas[:, 1],
@@ -209,21 +215,21 @@ class Analyzer3D:
     def count_cell_types(self) -> None:
         """Count and update the number of cells for each cell type"""
         for cell_block in self.reader.cell_blocks:
-            alpha_cell_type = meshio_type_to_alpha[cell_block.type]
-            if alpha_cell_type == "hexahedron":
+            cell_type_str = meshio_type_to_alpha[cell_block.type]
+            if cell_type_str == "hexahedron":
                 self.hex_count += len(cell_block.data)
                 self.has_quad = True
 
-            elif alpha_cell_type == "tetra":
+            elif cell_type_str == "tetra":
                 self.tetra_count += len(cell_block.data)
                 self.has_tri = True
 
-            elif alpha_cell_type == "pyramid":
+            elif cell_type_str == "pyramid":
                 self.pyramid_count += len(cell_block.data)
                 self.has_quad = True
                 self.has_tri = True
 
-            elif alpha_cell_type == "wedge":
+            elif cell_type_str == "wedge":
                 self.wedge_count += len(cell_block.data)
                 self.has_quad = True
                 self.has_tri = True
@@ -262,7 +268,7 @@ class Analyzer3D:
         """Call appropriate methods for each cell type and update cells centers
         and cells volumes.
         """
-        cell_type_handler_map = {
+        cell_type_handler_fn_map = {
             "hexahedron": hex_data_from_tensor,
             "tetra": tetra_data_from_tensor,
             "wedge": wedge_data_from_tensor,
@@ -270,10 +276,11 @@ class Analyzer3D:
         }
 
         for cell_block in self.reader.cell_blocks:
-            ctype = meshio_type_to_alpha[cell_block.type]
-            handler = cell_type_handler_map[ctype]
+            cell_type_str = meshio_type_to_alpha[cell_block.type]
+            cell_geometry_handler_fn = cell_type_handler_fn_map[cell_type_str]
+
             data_tensor = np.take(self.points, cell_block.data, axis=0)
-            centers, vols = handler(data_tensor)
+            centers, vols = cell_geometry_handler_fn(data_tensor)
             self.cells_centers = np.concatenate([self.cells_centers, centers], axis=0)
             self.cells_volumes = np.concatenate([self.cells_volumes, vols], axis=0)
 
