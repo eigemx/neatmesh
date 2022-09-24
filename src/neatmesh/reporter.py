@@ -201,7 +201,7 @@ class Reporter2D(Reporter):
         self.report_elements_count()
 
         quality_metric_dict = {
-            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True, },
+            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
@@ -299,7 +299,7 @@ class Reporter3D(Reporter):
         self.report_elements_count()
 
         quality_metrics_dict = {
-            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True, },
+            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
