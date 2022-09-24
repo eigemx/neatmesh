@@ -4,7 +4,14 @@ from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
+from .common import (
+    is_2d_mesh,
+    is_3d_mesh,
+    meshio_1d_elements,
+    meshio_2d_elements,
+    meshio_3d_elements,
+    meshio_type_to_alpha,
+)
 from .exceptions import InvalidMeshException, NonSupportedElement
 from .geometry import (
     hex_cell_faces,
@@ -25,10 +32,10 @@ class MeshReader:
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
-    def _check_mesh() -> None:
+    def _check_mesh(self) -> None:
         return
 
-    def _process_mesh() -> None:
+    def _process_mesh(self) -> None:
         return
 
 
@@ -63,11 +70,14 @@ class MeshReader2D(MeshReader):
         for cell_block in self.mesh.cells:
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
 
-            if ctype in meshio_2d and cell_block.data.size > 0:
+            if ctype in meshio_2d_elements and cell_block.data.size > 0:
                 self.cell_blocks.append(cell_block)
                 self.n_faces += len(cell_block.data)
 
-            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
+            elif (
+                ctype not in meshio_2d_elements
+                and cell_block.type not in meshio_1d_elements
+            ):
                 raise NonSupportedElement(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
@@ -144,11 +154,14 @@ class MeshReader3D(MeshReader):
             # look up cell_block type, and return "unsupported" if not found
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
 
-            if ctype in meshio_3d and cell_block.data.size > 0:
+            if ctype in meshio_3d_elements and cell_block.data.size > 0:
                 self.cell_blocks.append(cell_block)
                 self.n_cells += len(cell_block.data)
 
-            elif ctype not in meshio_2d and cell_block.type not in meshio_1d:
+            elif (
+                ctype not in meshio_2d_elements
+                and cell_block.type not in meshio_1d_elements
+            ):
                 raise NonSupportedElement(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
@@ -215,9 +228,9 @@ def assign_reader(mesh_file_path: str) -> MeshReader:
         error += f"{exception}"
         raise InvalidMeshException(error) from exception
 
-    if is_3d(mesh):
+    if is_3d_mesh(mesh):
         return MeshReader3D(mesh)
-    if is_2d(mesh):
+    if is_2d_mesh(mesh):
         return MeshReader2D(mesh)
 
     raise InvalidMeshException("Couldn't decide on mesh dimensionality")
