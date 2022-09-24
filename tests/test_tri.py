@@ -11,7 +11,7 @@ def test_tri():
         [3, 2, 1],  # area = 0.5 m2
     ]
     tri_faces_tensor = np.array(
-        [[points[i] for i in faces[0]], [points[i] for i in faces[1]],]
+        [[points[i] for i in faces[0]], [points[i] for i in faces[1]]]
     )
 
     tri_centers, _, tri_areas, _ = tri_data_from_tensor(tri_faces_tensor)

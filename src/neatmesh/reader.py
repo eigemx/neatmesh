@@ -4,16 +4,12 @@ from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
+from .common import (is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d,
+                     meshio_type_to_alpha)
 from .exceptions import InvalidMeshException, NonSupportedElement
-from .geometry import (
-    hex_cell_faces,
-    tetra_cell_faces,
-    pyramid_cell_faces,
-    wedge_cell_faces,
-    quad_face_edges,
-    tri_face_edges,
-)
+from .geometry import (hex_cell_faces, pyramid_cell_faces, quad_face_edges,
+                       tetra_cell_faces, tri_face_edges, wedge_cell_faces)
+
 
 # pylint: disable=unused-private-member
 class MeshReader:
