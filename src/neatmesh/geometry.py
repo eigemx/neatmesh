@@ -1,6 +1,6 @@
 """geometry related functions for faces and cells"""
 # pylint: disable=invalid-name, too-many-locals
-from typing import Tuple, List
+from typing import List, Tuple
 
 import numpy as np
 from numpy.linalg import det, norm

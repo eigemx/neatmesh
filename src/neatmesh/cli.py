@@ -7,9 +7,9 @@ from pathlib import Path
 import toml
 from rich.console import Console
 
+from .exceptions import InvalidMeshException
 from .reader import MeshReader3D, assign_reader
 from .reporter import Reporter2D, Reporter3D
-from .exceptions import InvalidMeshException
 
 
 # pylint: disable=import-outside-toplevel
