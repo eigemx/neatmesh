@@ -2,7 +2,7 @@
 
 from meshio import Mesh
 
-meshio_3d = {
+meshio_3d_elements = {
     "tetra",
     "tetra10",
     "hexahedron",
@@ -41,33 +41,33 @@ meshio_type_to_alpha = {
     "pyramid14": "pyramid",
 }
 
-meshio_2d = {
+meshio_2d_elements = {
     "triangle",
     "quad",
 }
 
-meshio_1d = {
+meshio_1d_elements = {
     "vertex",
     "line",
     "line3",
 }
 
 
-def is_3d(mesh: Mesh) -> bool:
+def is_3d_mesh(mesh: Mesh) -> bool:
     """Check if a meshio mesh is 3-dimensional"""
     for cell_block in mesh.cells:
         # first 3D element type is enough.
-        if meshio_type_to_alpha[cell_block.type] in meshio_3d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_3d_elements:
             return True
     return False
 
 
-def is_2d(mesh: Mesh) -> bool:
+def is_2d_mesh(mesh: Mesh) -> bool:
     """Check ifa meshio mesh is 2-dimensional"""
-    if is_3d(mesh):
+    if is_3d_mesh(mesh):
         return False
 
     for cell_block in mesh.cells:
-        if meshio_type_to_alpha[cell_block.type] in meshio_2d:
+        if meshio_type_to_alpha[cell_block.type] in meshio_2d_elements:
             return True
     return False
