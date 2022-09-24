@@ -5,10 +5,16 @@ from typing import Tuple
 import numpy as np
 
 from .common import meshio_type_to_alpha
-from .geometry import (dot, dot_normalize, hex_data_from_tensor,
-                       pyramid_data_from_tensor, quad_data_from_tensor,
-                       tetra_data_from_tensor, tri_data_from_tensor,
-                       wedge_data_from_tensor)
+from .geometry import (
+    dot,
+    dot_normalize,
+    hex_data_from_tensor,
+    pyramid_data_from_tensor,
+    quad_data_from_tensor,
+    tetra_data_from_tensor,
+    tri_data_from_tensor,
+    wedge_data_from_tensor,
+)
 from .reader import MeshReader2D, MeshReader3D
 
 

@@ -4,11 +4,16 @@ from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import (is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d,
-                     meshio_type_to_alpha)
+from .common import is_2d, is_3d, meshio_1d, meshio_2d, meshio_3d, meshio_type_to_alpha
 from .exceptions import InvalidMeshException, NonSupportedElement
-from .geometry import (hex_cell_faces, pyramid_cell_faces, quad_face_edges,
-                       tetra_cell_faces, tri_face_edges, wedge_cell_faces)
+from .geometry import (
+    hex_cell_faces,
+    pyramid_cell_faces,
+    quad_face_edges,
+    tetra_cell_faces,
+    tri_face_edges,
+    wedge_cell_faces,
+)
 
 
 # pylint: disable=unused-private-member
@@ -20,10 +25,10 @@ class MeshReader:
         self.points = self.mesh.points
         self.n_points = len(self.points)
 
-    def __check_mesh() -> None:
+    def _check_mesh() -> None:
         return
 
-    def __process_mesh() -> None:
+    def _process_mesh() -> None:
         return
 
 
@@ -47,10 +52,10 @@ class MeshReader2D(MeshReader):
         # keep track of the face id to be processed.
         self.__current_faceid: int = 0
 
-        self.__check_mesh()
-        self.__process_mesh()
+        self._check_mesh()
+        self._process_mesh()
 
-    def __check_mesh(self) -> None:
+    def _check_mesh(self) -> None:
         """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_faces = 0
         self.cell_blocks = []
@@ -70,7 +75,7 @@ class MeshReader2D(MeshReader):
         if not self.cell_blocks:
             raise InvalidMeshException("No 2D elements were found in mesh")
 
-    def __process_mesh(self) -> None:
+    def _process_mesh(self) -> None:
         """Get edges of each 2D cell, and assign owner/neighbor of each edge"""
         for cell_block in self.cell_blocks:
             faces = cell_block.data
@@ -127,15 +132,16 @@ class MeshReader3D(MeshReader):
         # keep track of the cell id to be processed.
         self.__current_cellid: int = 0
 
-        self.__check_mesh()
-        self.__process_mesh()
+        self._check_mesh()
+        self._process_mesh()
 
-    def __check_mesh(self) -> None:
+    def _check_mesh(self) -> None:
         """Look for 2D cell types, and check if mesh contains unsupported types"""
         self.n_cells = 0
         self.cell_blocks = []
 
         for cell_block in self.mesh.cells:
+            # look up cell_block type, and return "unsupported" if not found
             ctype = meshio_type_to_alpha.get(cell_block.type, "unsupported")
 
             if ctype in meshio_3d and cell_block.data.size > 0:
@@ -150,18 +156,19 @@ class MeshReader3D(MeshReader):
         if not self.cell_blocks:
             raise InvalidMeshException("No 3D elements were found in mesh")
 
-    def __process_mesh(self) -> None:
+    def _process_mesh(self) -> None:
         """Get faces of each 3D cell, and assign owner/neighbor of each face"""
         for cell_block in self.cell_blocks:
             cells = cell_block.data
 
             for cell in cells:
                 cell_type = meshio_type_to_alpha[cell_block.type]
-                faces_func = cell_type_to_faces_func[cell_type]
-                faces = faces_func(cell)
+                get_faces_fn = _cell_type_to_faces_fn_map[cell_type]
+                faces = get_faces_fn(cell)
+
                 for face in faces:
                     fface = frozenset(face)
-                    # have we met `face` before?
+                    # have we met current before?
                     if fface not in self.__faces_set:
                         self.face_to_faceid[fface] = self.__current_faceid
                         self.__faces_set.add(fface)
@@ -181,7 +188,7 @@ class MeshReader3D(MeshReader):
                 self.__current_cellid += 1
 
 
-cell_type_to_faces_func: Dict[str, Callable] = {
+_cell_type_to_faces_fn_map: Dict[str, Callable] = {
     "hexahedron": hex_cell_faces,
     "tetra": tetra_cell_faces,
     "wedge": wedge_cell_faces,
