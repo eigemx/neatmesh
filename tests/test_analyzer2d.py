@@ -4,8 +4,8 @@ import meshio
 import numpy as np
 import pytest
 
-from neatmesh.analyzer import Analyzer2D
-from neatmesh.reader import assign_reader
+from neatmesh._analyzer import Analyzer2D
+from neatmesh._reader import assign_reader
 
 this_dir = pathlib.Path(__file__).resolve().parent
 h5py = pytest.importorskip("h5py")

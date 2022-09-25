@@ -4,8 +4,8 @@ from typing import Tuple
 
 import numpy as np
 
-from .common import meshio_type_to_alpha
-from .geometry import (
+from ._common import meshio_type_to_alpha
+from ._geometry import (
     dot,
     dot_normalize,
     hex_data_from_tensor,
@@ -15,7 +15,7 @@ from .geometry import (
     tri_data_from_tensor,
     wedge_data_from_tensor,
 )
-from .reader import MeshReader2D, MeshReader3D
+from ._reader import MeshReader2D, MeshReader3D
 
 
 class Analyzer2D:
@@ -30,6 +30,7 @@ class Analyzer2D:
 
         self.points = self.reader.points
         self.n_points = reader.n_points
+        self.edges = self.reader.edges
         self.n_edges = len(reader.edges)
         self.n_faces = reader.n_faces
 
@@ -51,7 +52,7 @@ class Analyzer2D:
 
         # transform list of edge tuples, to array of point coordinates
         # output shape = (n_internal_edges, 2, 3)
-        self.__edges_tensor = np.take(self.__3d_points, self.reader.edges, axis=0)
+        self.__edges_tensor = np.take(self.__3d_points, self.edges, axis=0)
 
         self.__interior_edges_shared_faces: np.ndarray = np.array([])
         self.n_boundary_edges: int = 0
@@ -134,12 +135,15 @@ class Analyzer2D:
         # and represents the coordinates of first and second coordinates of
         # each edge.
         internal_edges_tensor = self.__edges_tensor[interior_edges_mask]
-        edges_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
+
+        # TODO: normalize this, and write a test
+        edge_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
+        self.edge_normals = np.hstack([edge_vectors[:, 1], -edge_vectors[:, 0]])
 
         # array of vectors connecting adjacent faces centroids.
         neigbor_owner_vectors = neighbor_centers - owner_centers
 
-        costheta = np.abs(dot_normalize(neigbor_owner_vectors, edges_vectors))
+        costheta = np.abs(dot_normalize(neigbor_owner_vectors, edge_vectors))
         self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
 
     def analyze_adjacents_area_ratio(self) -> None:

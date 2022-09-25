@@ -4,7 +4,7 @@ from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 
 import meshio
 
-from .common import (
+from ._common import (
     is_2d_mesh,
     is_3d_mesh,
     meshio_1d_elements,
@@ -12,8 +12,8 @@ from .common import (
     meshio_3d_elements,
     meshio_type_to_alpha,
 )
-from .exceptions import InvalidMeshException, NonSupportedElement
-from .geometry import (
+from ._exceptions import InvalidMeshError, NonSupportedElementError
+from ._geometry import (
     hex_cell_faces,
     pyramid_cell_faces,
     quad_face_edges,
@@ -78,12 +78,12 @@ class MeshReader2D(MeshReader):
                 ctype not in meshio_2d_elements
                 and cell_block.type not in meshio_1d_elements
             ):
-                raise NonSupportedElement(
+                raise NonSupportedElementError(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
 
         if not self.cell_blocks:
-            raise InvalidMeshException("No 2D elements were found in mesh")
+            raise InvalidMeshError("No 2D elements were found in mesh")
 
     def _process_mesh(self) -> None:
         """Get edges of each 2D cell, and assign owner/neighbor of each edge"""
@@ -162,12 +162,12 @@ class MeshReader3D(MeshReader):
                 ctype not in meshio_2d_elements
                 and cell_block.type not in meshio_1d_elements
             ):
-                raise NonSupportedElement(
+                raise NonSupportedElementError(
                     f"neatmesh does not support element type: {cell_block.type}"
                 )
 
         if not self.cell_blocks:
-            raise InvalidMeshException("No 3D elements were found in mesh")
+            raise InvalidMeshError("No 3D elements were found in mesh")
 
     def _process_mesh(self) -> None:
         """Get faces of each 3D cell, and assign owner/neighbor of each face"""
@@ -226,11 +226,11 @@ def assign_reader(mesh_file_path: str) -> MeshReader:
     except meshio.ReadError as exception:
         error = "Could not read mesh file (meshio error).\n"
         error += f"{exception}"
-        raise InvalidMeshException(error) from exception
+        raise InvalidMeshError(error) from exception
 
     if is_3d_mesh(mesh):
         return MeshReader3D(mesh)
     if is_2d_mesh(mesh):
         return MeshReader2D(mesh)
 
-    raise InvalidMeshException("Couldn't decide on mesh dimensionality")
+    raise InvalidMeshError("Couldn't decide on mesh dimensionality")

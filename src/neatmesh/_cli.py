@@ -7,9 +7,9 @@ from pathlib import Path
 import toml
 from rich.console import Console
 
-from .exceptions import InvalidMeshException
-from .reader import MeshReader3D, assign_reader
-from .reporter import Reporter2D, Reporter3D
+from ._exceptions import InvalidMeshError
+from ._reader import MeshReader3D, assign_reader
+from ._reporter import Reporter2D, Reporter3D
 
 
 # pylint: disable=import-outside-toplevel
@@ -63,7 +63,7 @@ def main():
     with console.status("Reading mesh..."):
         try:
             mesh = assign_reader(filename)
-        except InvalidMeshException as e:
+        except InvalidMeshError as e:
             error(f"{e}")
 
     if isinstance(mesh, MeshReader3D):
