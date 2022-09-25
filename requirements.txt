@@ -4,4 +4,3 @@ numpy
 pytest
 rich
 toml
-h5py
