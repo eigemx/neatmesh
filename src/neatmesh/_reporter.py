@@ -10,8 +10,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
-from .analyzer import Analyzer2D, Analyzer3D
-from .reader import MeshReader
+from ._analyzer import Analyzer2D, Analyzer3D
+from ._reader import MeshReader
 
 
 class Reporter:

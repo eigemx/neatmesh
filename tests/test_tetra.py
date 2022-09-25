@@ -3,9 +3,9 @@ import pathlib
 import numpy as np
 import pytest
 
-from neatmesh.analyzer import Analyzer3D
-from neatmesh.geometry import tetra_data_from_tensor
-from neatmesh.reader import assign_reader
+from neatmesh._analyzer import Analyzer3D
+from neatmesh._geometry import tetra_data_from_tensor
+from neatmesh._reader import assign_reader
 
 h5py = pytest.importorskip("h5py")
 
