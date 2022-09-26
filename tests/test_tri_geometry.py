@@ -5,7 +5,7 @@ from neatmesh._geometry import tri_data_from_tensor
 points = np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
 
 
-def test_tri():
+def test_tri_geometry():
     faces = [
         [2, 0, 1],  # area = 0.866025 m2
         [3, 2, 1],  # area = 0.5 m2
