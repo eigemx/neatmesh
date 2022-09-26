@@ -136,14 +136,14 @@ class Analyzer2D:
         # each edge.
         internal_edges_tensor = self.__edges_tensor[interior_edges_mask]
 
-        # TODO: normalize this, and write a test
-        edge_vectors = internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
-        self.edge_normals = np.hstack([edge_vectors[:, 1], -edge_vectors[:, 0]])
+        internal_edge_vectors = (
+            internal_edges_tensor[:, 1, :] - internal_edges_tensor[:, 0, :]
+        )
 
         # array of vectors connecting adjacent faces centroids.
         neigbor_owner_vectors = neighbor_centers - owner_centers
 
-        costheta = np.abs(dot_normalize(neigbor_owner_vectors, edge_vectors))
+        costheta = np.abs(dot_normalize(neigbor_owner_vectors, internal_edge_vectors))
         self.non_ortho = 90 - (np.arccos(costheta) * (180.0 / np.pi))
 
     def analyze_adjacents_area_ratio(self) -> None:
@@ -189,6 +189,7 @@ class Analyzer3D:
         self.face_normals = np.zeros(shape=(self.n_faces, 3))
         self.face_areas = np.zeros(shape=(self.n_faces,))
         self.face_aspect_ratios = np.zeros(shape=(self.n_faces,))
+        self.owner_neighbor: np.ndarray = np.array([])
 
         self.n_tri = 0
         self.n_quad = 0

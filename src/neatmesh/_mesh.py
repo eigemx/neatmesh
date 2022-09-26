@@ -1,11 +1,19 @@
+"""2D and 3D wrappers for neatmesh internals"""
+import numpy as np
+
 from ._analyzer import Analyzer2D, Analyzer3D
 from ._exceptions import InputMeshDimensionError
 from ._reader import MeshReader2D, MeshReader3D, assign_reader
 
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-few-public-methods
+
 
 class Mesh2D:
+    """A wrapper for 2D mesh analysis results"""
+
     def __init__(self, mesh_file_path: str) -> None:
-        self._reader: MeshReader2D = assign_reader(mesh_file_path)
+        self._reader = assign_reader(mesh_file_path)
 
         if isinstance(self._reader, MeshReader3D):
             raise InputMeshDimensionError(
@@ -23,10 +31,21 @@ class Mesh2D:
         self.points = self._analyzer.points
 
         self.edges = self._analyzer.edges
-        self.edge_normals = self._analyzer.edge_normals
+        edges_tensor = np.take(self.points, self.edges, axis=0)
+        edges_vectors = edges_tensor[:, 1, :] - edges_tensor[:, 0, :]
+        self.edge_normals = np.hstack(
+            [edges_vectors[:, 1][:, np.newaxis], -edges_vectors[:, 0][:, np.newaxis]]
+        )
+
+        # normalize normals
+        # the transpose is an ugly trick, works for now but needs to be refactored
+        self.edge_normals = self.edge_normals.T / np.linalg.norm(
+            self.edge_normals.T, axis=0
+        )
+        self.edge_normals = self.edge_normals.T
 
         self.face_areas = self._analyzer.face_areas
-        self.face_centers = self._analyzer.face_centers
+        self.face_centers = self._analyzer.face_centers[:, 0:2]
         self.owner_neighbor = self._analyzer.owner_neighbor
 
         self.n_points = self._analyzer.n_points
@@ -42,8 +61,10 @@ class Mesh2D:
 
 
 class Mesh3D:
+    """A wrapper for 3D mesh analysis results"""
+
     def __init__(self, mesh_file_path: str) -> None:
-        self._reader: MeshReader3D = assign_reader(mesh_file_path)
+        self._reader = assign_reader(mesh_file_path)
 
         if isinstance(self._reader, MeshReader2D):
             raise InputMeshDimensionError(
@@ -85,6 +106,6 @@ class Mesh3D:
         self.wedge_count = self._analyzer.wedge_count
 
         # boundary faces
-        self.n_boundary_faces = self.n_boundary_faces
+        self.n_boundary_faces = self._analyzer.n_boundary_faces
         self.boundary_faces_mask = self.owner_neighbor[:, 1] == -1
         self.internal_faces_mask = self.owner_neighbor[:, 1] != -1
