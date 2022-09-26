@@ -1,6 +1,6 @@
 """neatmesh 2D & 3D mesh readers"""
 # pylint: disable=too-few-public-methods, too-many-instance-attributes
-from typing import Callable, Dict, FrozenSet, List, Set, Tuple
+from typing import Callable, Dict, FrozenSet, List, Set, Tuple, Union
 
 import meshio
 
@@ -209,7 +209,7 @@ cell_type_to_faces_fn_map: Dict[str, Callable] = {
 }
 
 
-def assign_reader(mesh_file_path: str) -> MeshReader:
+def assign_reader(mesh_file_path: str) -> Union[MeshReader2D, MeshReader3D]:
     """Assign a 2D or 3D MeshReader, given the mesh file.
 
     Args:

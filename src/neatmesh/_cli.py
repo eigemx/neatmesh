@@ -63,8 +63,8 @@ def main():
     with console.status("Reading mesh..."):
         try:
             mesh = assign_reader(filename)
-        except InvalidMeshError as e:
-            error(f"{e}")
+        except InvalidMeshError as mesh_error:
+            error(f"{mesh_error}")
 
     if isinstance(mesh, MeshReader3D):
         reporter = Reporter3D(console, mesh, filename)
