@@ -20,6 +20,7 @@ class Mesh2D:
         self._analyzer.analyze_non_ortho()
 
         self.meshio_cell_blocks = self._reader.cell_blocks
+        self.dim = 2
         self.points = self._analyzer.points
 
         self.edges = self._analyzer.edges
@@ -65,6 +66,7 @@ class Mesh3D:
         self._analyzer.analyze_non_ortho()
 
         self.meshio_cell_blocks = self._reader.cell_blocks
+        self.dim = 3
         self.points = self._analyzer.points
 
         # faces data
