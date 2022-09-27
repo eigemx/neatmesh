@@ -4,14 +4,14 @@ import meshio
 import numpy as np
 import pytest
 
-from neatmesh import Mesh2D
+from neatmesh import read
 
 this_dir = pathlib.Path(__file__).resolve().parent
 h5py = pytest.importorskip("h5py")
 
 
 def test_single_quad_2d_mesh():
-    mesh = Mesh2D(this_dir / "meshes" / "single_quad.med")
+    mesh = read(this_dir / "meshes" / "single_quad.med")
     assert np.all(mesh.owner_neighbor[:, 1] == -1)
     assert mesh.n_points == 4
     assert mesh.n_edges == 4
@@ -46,7 +46,7 @@ def test_two_triangles_2d_mesh(tmp_path):
 
     mesh = meshio.Mesh(points=points, cells=cell_blocks)
     meshio.write(tmp_path / "two_tri.su2", mesh)
-    mesh = Mesh2D(tmp_path / "two_tri.su2")
+    mesh = read(tmp_path / "two_tri.su2")
 
     assert mesh.n_points == 4
     assert mesh.n_boundary_edges == 4

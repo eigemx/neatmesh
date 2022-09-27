@@ -12,7 +12,11 @@ from ._common import (
     meshio_3d_elements,
     meshio_type_to_alpha,
 )
-from ._exceptions import InvalidMeshError, NonSupportedElementError
+from ._exceptions import (
+    InputMeshDimensionError,
+    InvalidMeshError,
+    NonSupportedElementError,
+)
 from ._geometry import (
     hex_cell_faces,
     pyramid_cell_faces,
@@ -233,4 +237,4 @@ def assign_reader(mesh_file_path: str) -> Union[MeshReader2D, MeshReader3D]:
     if is_2d_mesh(mesh):
         return MeshReader2D(mesh)
 
-    raise InvalidMeshError("Couldn't decide on mesh dimensionality")
+    raise InputMeshDimensionError("Couldn't decide on mesh dimensionality")

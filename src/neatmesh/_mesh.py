@@ -2,8 +2,7 @@
 import numpy as np
 
 from ._analyzer import Analyzer2D, Analyzer3D
-from ._exceptions import InputMeshDimensionError
-from ._reader import MeshReader2D, MeshReader3D, assign_reader
+from ._reader import MeshReader2D, MeshReader3D
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-few-public-methods
@@ -12,15 +11,8 @@ from ._reader import MeshReader2D, MeshReader3D, assign_reader
 class Mesh2D:
     """A wrapper for 2D mesh analysis results"""
 
-    def __init__(self, mesh_file_path: str) -> None:
-        self._reader = assign_reader(mesh_file_path)
-
-        if isinstance(self._reader, MeshReader3D):
-            raise InputMeshDimensionError(
-                "Attempting to read a 3D mesh by a Mesh2D object, "
-                "please use Mesh3D instead"
-            )
-
+    def __init__(self, reader: MeshReader2D) -> None:
+        self._reader = reader
         self._analyzer = Analyzer2D(self._reader)
 
         self._analyzer.count_face_types()
@@ -63,15 +55,8 @@ class Mesh2D:
 class Mesh3D:
     """A wrapper for 3D mesh analysis results"""
 
-    def __init__(self, mesh_file_path: str) -> None:
-        self._reader = assign_reader(mesh_file_path)
-
-        if isinstance(self._reader, MeshReader2D):
-            raise InputMeshDimensionError(
-                "Attempting to read a 2D mesh by a Mesh3D object, "
-                "please use Mesh2D instead"
-            )
-
+    def __init__(self, reader: MeshReader3D) -> None:
+        self._reader = reader
         self._analyzer = Analyzer3D(self._reader)
 
         self._analyzer.count_cell_types()
