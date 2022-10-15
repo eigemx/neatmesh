@@ -24,6 +24,14 @@ Using neatmesh is simple:
 
     neatmesh my_awesome_mesh.su2
 
+or
+
+    import neatmesh as nm
+    
+    mesh = nm.read('my_awesome_mesh.su2')
+    # mesh.face_areas, mesh.face_centers, mesh.owner_neighbor,
+    # mesh.n_points, mesh.n_edges, mesh.n_faces, ..... 
+    
 ## What does neatmesh report?
 neatmesh will report file size, mesh bounding box, mesh dimensionality, points count, duplicate points count, face counts and types, cell counts and types, and the following quality statistics
 1. **Face Area**: face area in mesh units.
