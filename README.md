@@ -5,7 +5,7 @@ Mesh Quality Inspector
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
-neatmesh is a 2D/3D finite volume/element mesh quality inspector, neatmesh works with all formats supported by [meshio](https://github.com/nschloe/meshio).
+neatmesh is a 2D/3D finite volume mesh quality inspector, neatmesh works with all formats supported by [meshio](https://github.com/nschloe/meshio).
 
 neatmesh is in early active development stage, and all sort of contributions are welcome (specially if you're new to open source contribution! ☺️)
 
