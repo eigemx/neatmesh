@@ -1,7 +1,7 @@
 # neatmesh
 Mesh Quality Inspector
 
-[![build](https://github.com/eigenemara/neatmesh/actions/workflows/build.yml/badge.svg)](https://github.com/eigenemara/neatmesh/actions/workflows/build.yml)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![build](https://github.com/eigemx/neatmesh/actions/workflows/build.yml/badge.svg)](https://github.com/eigemx/neatmesh/actions/workflows/build.yml)[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
@@ -10,7 +10,7 @@ neatmesh is a 2D/3D finite volume mesh quality inspector and a python library th
 neatmesh is in early active development stage, and all sort of contributions are welcome (specially if you're new to open source contribution! ☺️)
 
 <p align="center">
-    <img alt="neatmesh" src="https://media.githubusercontent.com/media/eigenemara/neatmesh/main/screenshots/cli.png" width="90%">
+    <img alt="neatmesh" src="https://media.githubusercontent.com/media/eigemx/neatmesh/main/screenshots/cli.png" width="90%">
 </p>
 
 
@@ -39,7 +39,7 @@ neatmesh will report file size, mesh bounding box, mesh dimensionality, points c
 3. **Cell Volume**: volume of 3D cell, current supported cell types: hexahedron, tetrahedron, wedge and pyramid.
 4. **Non-Orthogonality**: angle in degrees between (a) vector connecting two elements centers NP and (b) normal vector to the shared face or edge between the elements 
 
-![Non-ortho example](https://media.githubusercontent.com/media/eigenemara/neatmesh/main/screenshots/nonortho.png)
+![Non-ortho example](https://media.githubusercontent.com/media/eigemx/neatmesh/main/screenshots/nonortho.png)
 
 Source: [Introduction to Computational Fluid Dynamics: Governing Equations, Turbulence Modeling Introduction and Finite Volume Discretization Basics. - Joel Guerrero](https://www.researchgate.net/publication/280385280_Introduction_to_Computational_Fluid_Dynamics_Governing_Equations_Turbulence_Modeling_Introduction_and_Finite_Volume_Discretization_Basics)
 
