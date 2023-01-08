@@ -112,9 +112,7 @@ class Reporter:
     def report_bounding_box(self):
         self.console.print("[yellow bold]Mesh bounding box: ")
         for point in self.analyzer.bounding_box():
-            print(
-                f"\t{point}",
-            )
+            print(f"\t{point}",)
         self.console.print()
 
     def report_concerns(self):
@@ -203,10 +201,7 @@ class Reporter2D(Reporter):
         self.report_elements_count()
 
         quality_metric_dict = {
-            "Face Area": {
-                "array": self.analyzer.face_areas,
-                "sci_not": True,
-            },
+            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
@@ -233,7 +228,9 @@ class Reporter3D(Reporter):
         super().__init__(console, mesh, filename)
 
     def report_mesh_volume(self):
-        self.console.print(f"Mesh volume = {self.analyzer.mesh_volume:.3f} L^3 (in mesh units)\n")
+        self.console.print(
+            f"Mesh volume = {self.analyzer.mesh_volume:.3f} L^3 (in mesh units)\n"
+        )
 
     def report_elements_count(self):
         cell_count = self.analyzer.n_cells
@@ -308,10 +305,7 @@ class Reporter3D(Reporter):
         self.report_elements_count()
 
         quality_metrics_dict = {
-            "Face Area": {
-                "array": self.analyzer.face_areas,
-                "sci_not": True,
-            },
+            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,

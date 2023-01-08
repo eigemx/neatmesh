@@ -289,7 +289,7 @@ class Analyzer3D:
             centers, vols = cell_geometry_handler_fn(data_tensor)
             self.cells_centers = np.concatenate([self.cells_centers, centers], axis=0)
             self.cells_volumes = np.concatenate([self.cells_volumes, vols], axis=0)
-        
+
         # calculate mesh volume
         self.mesh_volume = np.sum(self.cells_volumes)
 
