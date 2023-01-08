@@ -54,7 +54,7 @@ meshio_1d_elements = {
 
 
 def is_3d_mesh(mesh: MeshioMesh) -> bool:
-    """Check if a meshio mesh is 3-dimensional"""
+    """Check if a meshio.mesh is 3-dimensional"""
     for cell_block in mesh.cells:
         # first 3D element type is enough.
         if meshio_type_to_alpha[cell_block.type] in meshio_3d_elements:
@@ -63,7 +63,7 @@ def is_3d_mesh(mesh: MeshioMesh) -> bool:
 
 
 def is_2d_mesh(mesh: MeshioMesh) -> bool:
-    """Check ifa meshio mesh is 2-dimensional"""
+    """Check if a meshio.mesh is 2-dimensional"""
     if is_3d_mesh(mesh):
         return False
 
