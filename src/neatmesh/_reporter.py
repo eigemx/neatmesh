@@ -232,6 +232,9 @@ class Reporter3D(Reporter):
     def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
         super().__init__(console, mesh, filename)
 
+    def report_mesh_volume(self):
+        self.console.print(f"Mesh volume = {self.analyzer.mesh_volume:.3f} L^3 (in mesh units)\n")
+
     def report_elements_count(self):
         cell_count = self.analyzer.n_cells
         face_count = self.analyzer.n_faces
@@ -301,6 +304,7 @@ class Reporter3D(Reporter):
             self.console.print(f"Found quality rules file: '{rules['fname']}'\n")
 
         self.report_bounding_box()
+        self.report_mesh_volume()
         self.report_elements_count()
 
         quality_metrics_dict = {

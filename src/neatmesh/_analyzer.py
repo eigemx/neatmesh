@@ -196,6 +196,7 @@ class Analyzer3D:
 
         self.cells_centers: np.ndarray = np.array([]).reshape(0, 3)
         self.cells_volumes: np.ndarray = np.array([])
+        self.mesh_volume = 0.0
 
         self.interior_faces: np.ndarray = np.array([])
         self.n_boundary_faces: int = 0
@@ -288,6 +289,9 @@ class Analyzer3D:
             centers, vols = cell_geometry_handler_fn(data_tensor)
             self.cells_centers = np.concatenate([self.cells_centers, centers], axis=0)
             self.cells_volumes = np.concatenate([self.cells_volumes, vols], axis=0)
+        
+        # calculate mesh volume
+        self.mesh_volume = np.sum(self.cells_volumes)
 
     def analyze_non_ortho(self) -> None:
         """For each internal face, calculate the non-orthogonality between the cells.
