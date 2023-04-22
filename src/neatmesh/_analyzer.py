@@ -319,6 +319,10 @@ class Analyzer3D:
         costheta = dot_normalize(nei_owner_vectors, interior_face_normals)
         self.non_ortho = np.arccos(costheta) * (180.0 / np.pi)
 
+    def surface_area(self) -> float:
+        boundary_faces_mask = self.owner_neighbor[:, 1] == -1
+        return np.sum(self.face_areas[boundary_faces_mask])
+
     def analyze_adjacents_volume_ratio(self) -> None:
         """Calculate the area ratio for each two neighbor cells (max/min)"""
         adjacent_cells_vol = np.take(self.cells_volumes, self.interior_faces, axis=0)
