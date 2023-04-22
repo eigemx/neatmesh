@@ -1,4 +1,6 @@
 """2D and 3D wrappers for neatmesh internals"""
+from typing import Union
+
 import numpy as np
 
 from ._analyzer import Analyzer2D, Analyzer3D
@@ -96,3 +98,14 @@ class Mesh3D:
         self.n_boundary_faces = self._analyzer.n_boundary_faces
         self.boundary_faces_mask = self.owner_neighbor[:, 1] == -1
         self.internal_faces_mask = self.owner_neighbor[:, 1] != -1
+
+
+def read(mesh_file_path: str) -> Union[Mesh2D, Mesh3D]:
+    from ._reader import MeshReader2D, assign_reader
+
+    reader = assign_reader(mesh_file_path)
+
+    if isinstance(reader, MeshReader2D):
+        return Mesh2D(reader)
+    else:
+        return Mesh3D(reader)

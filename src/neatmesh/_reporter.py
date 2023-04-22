@@ -112,7 +112,7 @@ class Reporter:
     def report_bounding_box(self):
         self.console.print("[yellow bold]Mesh bounding box: ")
         for point in self.analyzer.bounding_box():
-            print(f"\t{point}",)
+            print(f"\t({point[0]:.4f}, {point[1]:.4f}, {point[2]:.4f})")
         self.console.print()
 
     def report_concerns(self):
@@ -229,7 +229,13 @@ class Reporter3D(Reporter):
 
     def report_mesh_volume(self):
         self.console.print(
-            f"Mesh volume = {self.analyzer.mesh_volume:.3f} L^3 (in mesh units)\n"
+            f"Mesh volume = {self.analyzer.mesh_volume:.3f} [L^3] (in mesh units)"
+        )
+
+    def report_mesh_surface_area(self):
+        s_area = self.analyzer.surface_area()
+        self.console.print(
+            f"Mesh surface area = {s_area:.3f} [L^2] (in mesh units)\n"
         )
 
     def report_elements_count(self):
@@ -302,6 +308,7 @@ class Reporter3D(Reporter):
 
         self.report_bounding_box()
         self.report_mesh_volume()
+        self.report_mesh_surface_area()
         self.report_elements_count()
 
         quality_metrics_dict = {
