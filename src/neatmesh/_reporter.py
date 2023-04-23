@@ -112,7 +112,10 @@ class Reporter:
     def report_bounding_box(self):
         self.console.print("[yellow bold]Mesh bounding box: ")
         for point in self.analyzer.bounding_box():
-            print(f"\t({point[0]:.4f}, {point[1]:.4f}, {point[2]:.4f})")
+            if len(point) == 3:
+                print(f"\t({point[0]:.4f}, {point[1]:.4f}, {point[2]:.4f})")
+            else:
+                print(f"\t({point[0]:.4f}, {point[1]:.4f})")
         self.console.print()
 
     def report_concerns(self):
@@ -138,6 +141,11 @@ class Reporter:
 class Reporter2D(Reporter):
     def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
         super().__init__(console, mesh, filename)
+
+    def report_mesh_area(self):
+        self.console.print(
+            f"Mesh area = {self.analyzer.area():.4f} [L^2] (in mesh units)\n"
+        )
 
     def report_elements_count(self):
         face_count = self.analyzer.n_faces
@@ -198,6 +206,7 @@ class Reporter2D(Reporter):
             self.console.print(f"Found quality rules file: '{rules['fname']}'\n")
 
         self.report_bounding_box()
+        self.report_mesh_area()
         self.report_elements_count()
 
         quality_metric_dict = {
@@ -234,9 +243,7 @@ class Reporter3D(Reporter):
 
     def report_mesh_surface_area(self):
         s_area = self.analyzer.surface_area()
-        self.console.print(
-            f"Mesh surface area = {s_area:.3f} [L^2] (in mesh units)\n"
-        )
+        self.console.print(f"Mesh surface area = {s_area:.3f} [L^2] (in mesh units)\n")
 
     def report_elements_count(self):
         cell_count = self.analyzer.n_cells
