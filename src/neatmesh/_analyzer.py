@@ -64,6 +64,10 @@ class Analyzer2D:
         """Count number of duplicate points/nodes"""
         return self.points.shape[0] - np.unique(self.points, axis=0).shape[0]
 
+    def area(self) -> float:
+        """Calculate the area of the mesh"""
+        return np.sum(self.face_areas)
+
     def bounding_box(self) -> Tuple:
         """Return coordinates of bounding box of the mesh (min & max coords)"""
         x_min, y_min = np.min(self.points, axis=0)
