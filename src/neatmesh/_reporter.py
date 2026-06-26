@@ -1,4 +1,5 @@
 """Report analyzers output to console"""
+
 import os
 from typing import Dict, List, Tuple
 
@@ -210,7 +211,10 @@ class Reporter2D(Reporter):
         self.report_elements_count()
 
         quality_metric_dict = {
-            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
+            "Face Area": {
+                "array": self.analyzer.face_areas,
+                "sci_not": True,
+            },
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
@@ -219,7 +223,7 @@ class Reporter2D(Reporter):
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
-                "max": rules.get("max_non_orhto", 60),
+                "max": rules.get("max_non_ortho", 60),
             },
             "Adjacent Faces Area Ratio": {
                 "array": self.analyzer.adj_ratio,
@@ -319,7 +323,10 @@ class Reporter3D(Reporter):
         self.report_elements_count()
 
         quality_metrics_dict = {
-            "Face Area": {"array": self.analyzer.face_areas, "sci_not": True,},
+            "Face Area": {
+                "array": self.analyzer.face_areas,
+                "sci_not": True,
+            },
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
@@ -329,7 +336,7 @@ class Reporter3D(Reporter):
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
-                "max": rules.get("max_non_orhto", 60),
+                "max": rules.get("max_non_ortho", 60),
             },
             "Adjacent Cells Volume Ratio": {
                 "array": self.analyzer.adj_ratio,
