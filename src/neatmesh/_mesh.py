@@ -1,4 +1,5 @@
 """2D and 3D wrappers for neatmesh internals"""
+
 from typing import Union
 
 import numpy as np
@@ -32,12 +33,9 @@ class Mesh2D:
             [edges_vectors[:, 1][:, np.newaxis], -edges_vectors[:, 0][:, np.newaxis]]
         )
 
-        # normalize normals
-        # the transpose is an ugly trick, works for now but needs to be refactored
-        self.edge_normals = self.edge_normals.T / np.linalg.norm(
-            self.edge_normals.T, axis=0
+        self.edge_normals = self.edge_normals / np.linalg.norm(
+            self.edge_normals, axis=1, keepdims=True
         )
-        self.edge_normals = self.edge_normals.T
 
         self.face_areas = self._analyzer.face_areas
         self.face_centers = self._analyzer.face_centers[:, 0:2]

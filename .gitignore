@@ -4,6 +4,7 @@ __pycache__/
 .vscode/
 .pytest_cache/
 .tox/
+.ruff_cache/
 
 # Distribution / packaging
 .Python
@@ -34,3 +35,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# uv
+uv.lock
