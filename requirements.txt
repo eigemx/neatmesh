@@ -1,6 +1,0 @@
-humanize
-meshio
-numpy
-pytest
-rich
-toml

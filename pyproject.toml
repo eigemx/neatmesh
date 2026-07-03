@@ -1,3 +1,50 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "neatmesh"
+version = "0.0.8"
+authors = [
+    {name = "Mohamed Emara", email = "mae.emara@gmail.com"},
+]
+description = "Finite Volume Mesh Quality Inspector"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["mesh", "scientific", "engineering", "fvm", "fem", "finite volume", "finite element"]
+dependencies = [
+    "numpy",
+    "rich",
+    "meshio",
+    "humanize",
+    "toml",
+]
+urls = {Homepage = "https://github.com/eigemx/neatmesh", "Bug Tracker" = "https://github.com/eigemx/neatmesh/issues"}
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+neatmesh = "neatmesh._cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203", "E231"]
+
+[tool.ruff.format]
+quote-style = "double"

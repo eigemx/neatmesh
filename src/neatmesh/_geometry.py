@@ -264,7 +264,7 @@ def hex_data_from_tensor(hex_cells_tensor: np.ndarray) -> Tuple[np.ndarray, ...]
 
 def dot_normalize(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Element wise dot product with normalization"""
-    return np.sum(x * y, axis=1) / ((norm(x, axis=1) * norm(y, axis=1)))
+    return np.sum(x * y, axis=1) / (norm(x, axis=1) * norm(y, axis=1))
 
 
 def dot(x: np.ndarray, y: np.ndarray) -> np.ndarray:
