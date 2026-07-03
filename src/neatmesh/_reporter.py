@@ -69,10 +69,13 @@ class Reporter:
                     n_failed = np.count_nonzero(
                         metric_dict["array"] > metric_dict["max"]
                     )
+                    total = metric_dict["array"].shape[0]
+                    pct = (n_failed / total) * 100
+                    pct_str = f" ({pct:.2f}%)" if pct > 0.001 else ""
                     self.concerns.append(
-                        f"* Found {n_failed} elements with "
-                        f"'{metric_name}' greater than "
-                        f" max. value {metric_dict['max']}."
+                        f"* Found {n_failed} elements{pct_str} with "
+                        f"{metric_name} greater than "
+                        f"max. value {metric_dict['max']}."
                     )
 
             if _max > 1e-4 or not metric_dict["sci_not"]:
@@ -263,6 +266,8 @@ class Reporter3D(Reporter):
         duplicate_nodes_status = (
             "[green](Ok)" if duplicate_nodes == 0 else "[red](Error)"
         )
+        if duplicate_nodes > 0:
+            self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
         points_branch.add(
             f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_status}"
         )
