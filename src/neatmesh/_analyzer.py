@@ -1,4 +1,5 @@
 """neatmesh mesh 2D & 3D analyzers"""
+
 # pylint: disable=too-many-instance-attributes
 from typing import Tuple
 

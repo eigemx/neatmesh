@@ -1,4 +1,5 @@
 """neatmesh cli entry point"""
+
 import argparse
 import os
 import sys

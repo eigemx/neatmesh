@@ -2,7 +2,6 @@ import pathlib
 
 import meshio
 import numpy as np
-import pytest
 
 from neatmesh import read
 

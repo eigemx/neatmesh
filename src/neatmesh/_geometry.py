@@ -1,4 +1,5 @@
 """geometry related functions for faces and cells"""
+
 # pylint: disable=invalid-name, too-many-locals
 from typing import List, Tuple
 
@@ -198,7 +199,7 @@ def wedge_data_from_tensor(wedge_cells_tensor: np.ndarray) -> Tuple[np.ndarray, 
         tetras_data[1][0:n_wedge],
         tetras_data[1][n_wedge:],
     )
-    (upper_tetra_centers, lower_tetra_centers) = (
+    upper_tetra_centers, lower_tetra_centers = (
         tetras_data[0][0:n_wedge],
         tetras_data[0][n_wedge:],
     )

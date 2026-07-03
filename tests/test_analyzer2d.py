@@ -2,7 +2,6 @@ import pathlib
 
 import meshio
 import numpy as np
-import pytest
 
 from neatmesh._analyzer import Analyzer2D
 from neatmesh._reader import assign_reader
