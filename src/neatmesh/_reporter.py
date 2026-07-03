@@ -137,10 +137,10 @@ class Reporter2D(Reporter):
         edge_count = self.analyzer.n_edges
         point_count = self.analyzer.n_points
 
-        tree = Tree(label="[yellow bold]Elements Statistics")
+        tree = Tree(label="[yellow bold]Mesh Statistics")
 
-        tree.add("Mesh is 2-Dimensional")
-        points_branch = tree.add(f"Points count = {point_count}", highlight=True)
+        tree.add("Mesh is 2-dimensional")
+        points_branch = tree.add(f"Nodes count = {point_count}", highlight=True)
 
         duplicate_nodes = self.analyzer.duplicate_nodes_count()
         duplicate_nodes_branch = (
@@ -166,6 +166,12 @@ class Reporter2D(Reporter):
         if self.analyzer.n_tri > 0:
             tri_pct = (self.analyzer.n_tri / self.analyzer.n_faces) * 100
             faces_branch.add(f"Triangles: {self.analyzer.n_tri} ({tri_pct:.1f}%)")
+
+        area_min = np.min(self.analyzer.face_areas)
+        area_max = np.max(self.analyzer.face_areas)
+        area_min_s = f"{area_min:.4f}" if area_min > 1e-4 else f"{area_min:.4e}"
+        area_max_s = f"{area_max:.4f}" if area_max > 1e-4 else f"{area_max:.4e}"
+        faces_branch.add(f"Face Area: min={area_min_s}, max={area_max_s}")
 
         self.console.print(tree)
 
@@ -195,10 +201,6 @@ class Reporter2D(Reporter):
         self.report_elements_count()
 
         quality_metric_dict = {
-            "Face Area": {
-                "array": self.analyzer.face_areas,
-                "sci_not": True,
-            },
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
@@ -238,10 +240,10 @@ class Reporter3D(Reporter):
         face_count = self.analyzer.n_faces
         point_count = self.analyzer.n_points
 
-        tree = Tree(label="[yellow bold]Elements Statistics")
+        tree = Tree(label="[yellow bold]Mesh Statistics")
 
-        tree.add("Mesh is 3-Dimensional")
-        points_branch = tree.add(f"Points count = {point_count}", highlight=True)
+        tree.add("Mesh is 3-dimensional")
+        points_branch = tree.add(f"Nodes count = {point_count}", highlight=True)
 
         duplicate_nodes = self.analyzer.duplicate_nodes_count()
         duplicate_nodes_status = (
@@ -277,6 +279,18 @@ class Reporter3D(Reporter):
             pct = (count / self.analyzer.n_cells) * 100
             cells_branch.add(f"{ctype}s: {count} ({pct:.1f}%)")
 
+        area_min = np.min(self.analyzer.face_areas)
+        area_max = np.max(self.analyzer.face_areas)
+        area_min_s = f"{area_min:.4f}" if area_min > 1e-4 else f"{area_min:.4e}"
+        area_max_s = f"{area_max:.4f}" if area_max > 1e-4 else f"{area_max:.4e}"
+        faces_branch.add(f"Face Area: min={area_min_s}, max={area_max_s}")
+
+        vol_min = np.min(self.analyzer.cells_volumes)
+        vol_max = np.max(self.analyzer.cells_volumes)
+        vol_min_s = f"{vol_min:.4f}" if vol_min > 1e-4 else f"{vol_min:.4e}"
+        vol_max_s = f"{vol_max:.4f}" if vol_max > 1e-4 else f"{vol_max:.4e}"
+        cells_branch.add(f"Cell Volume: min={vol_min_s}, max={vol_max_s}")
+
         self.console.print(tree)
 
     def report(self, rules: Dict[str, float]):
@@ -309,16 +323,11 @@ class Reporter3D(Reporter):
         self.report_elements_count()
 
         quality_metrics_dict = {
-            "Face Area": {
-                "array": self.analyzer.face_areas,
-                "sci_not": True,
-            },
             "Face Aspect Ratio": {
                 "array": self.analyzer.face_aspect_ratios,
                 "sci_not": False,
                 "max": rules.get("max_face_aspect_ratio", 20),
             },
-            "Cell Volume": {"array": self.analyzer.cells_volumes, "sci_not": True},
             "Non-Orthogonality": {
                 "array": self.analyzer.non_ortho,
                 "sci_not": False,
