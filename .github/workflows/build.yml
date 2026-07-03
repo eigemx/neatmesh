@@ -15,21 +15,19 @@ jobs:
     - uses: actions/checkout@v4
       with:
         lfs: true
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.8"
+        python-version: "3.10"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 pytest isort black numpy meshio
+        pip install ruff pytest numpy meshio
         pip install .
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint
       run: |
-        isort .
-        black .
-        flake8 .
+        ruff check . --diff
+        ruff format . --check
     - name: Test with pytest
       run: |
         pytest
