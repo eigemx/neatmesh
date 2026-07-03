@@ -7,11 +7,10 @@ import pytest
 from neatmesh import read
 
 this_dir = pathlib.Path(__file__).resolve().parent
-h5py = pytest.importorskip("h5py")
 
 
 def test_single_quad_2d_mesh():
-    mesh = read(this_dir / "meshes" / "single_quad.med")
+    mesh = read(this_dir / "meshes" / "single_quad.vtk")
     assert np.all(mesh.owner_neighbor[:, 1] == -1)
     assert mesh.n_points == 4
     assert mesh.n_edges == 4

@@ -7,8 +7,6 @@ from neatmesh._analyzer import Analyzer3D
 from neatmesh._geometry import tetra_data_from_tensor
 from neatmesh._reader import assign_reader
 
-h5py = pytest.importorskip("h5py")
-
 
 def test_tetra_one_cell():
     points = np.array(
@@ -26,7 +24,7 @@ def test_tetra_one_cell():
 
 def test_tetra_mesh():
     this_dir = pathlib.Path(__file__).resolve().parent
-    mesh = assign_reader(this_dir / "meshes" / "fine_cylinder.med")
+    mesh = assign_reader(this_dir / "meshes" / "fine_cylinder.vtk")
     q = Analyzer3D(mesh)
     q.count_cell_types()
     q.analyze_cells()

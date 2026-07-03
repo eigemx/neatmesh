@@ -6,12 +6,10 @@ import pytest
 from neatmesh._analyzer import Analyzer3D
 from neatmesh._reader import assign_reader
 
-h5py = pytest.importorskip("h5py")
-
 
 def test_hex_one_cell():
     this_dir = pathlib.Path(__file__).resolve().parent
-    mesh = assign_reader(this_dir / "meshes" / "one_hex_cell.med")
+    mesh = assign_reader(this_dir / "meshes" / "one_hex_cell.vtk")
     analyzer = Analyzer3D(mesh)
     analyzer.count_cell_types()
     analyzer.analyze_cells()
