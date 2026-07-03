@@ -1,4 +1,5 @@
 """neatmesh 2D & 3D mesh readers"""
+
 # pylint: disable=too-few-public-methods, too-many-instance-attributes
 from typing import Callable, Dict, FrozenSet, List, Set, Tuple, Union
 

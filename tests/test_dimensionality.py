@@ -1,7 +1,5 @@
 import pathlib
 
-import pytest
-
 import neatmesh as nm
 
 this_dir = pathlib.Path(__file__).resolve().parent
