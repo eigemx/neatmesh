@@ -27,15 +27,8 @@ def version() -> str:
 
 
 def header_str():
-    """neatmesh logo, version and license header"""
-    return rf"""
-                     __                      __
-   ____  ___  ____ _/ /_____ ___  ___  _____/ /_
-  / __ \/ _ \/ __ `/ __/ __ `__ \/ _ \/ ___/ __ \   Version: {version()}
- / / / /  __/ /_/ / /_/ / / / / /  __(__  ) / / /   License: MIT
-/_/ /_/\___/\__,_/\__/_/ /_/ /_/\___/____/_/ /_/
-
-"""
+    """neatmesh header"""
+    return f"neatmesh v{version()} — Mesh Quality Inspector | MIT License"
 
 
 def error(msg: str) -> None:

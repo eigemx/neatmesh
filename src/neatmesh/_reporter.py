@@ -7,7 +7,6 @@ import humanize
 import numpy as np
 from rich import box
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
@@ -96,14 +95,8 @@ class Reporter:
                     f"{_std:.4e}",
                 )
 
-        panel = Panel(
-            stats_table,
-            title="[yellow bold]Quality Stats.",
-            title_align="left",
-            expand=False,
-        )
-
-        self.console.print(panel)
+        self.console.print("[yellow bold]Quality Statistics")
+        self.console.print(stats_table)
         self.console.print()
 
     def report_file_size(self, filename: str):
@@ -124,21 +117,9 @@ class Reporter:
 
     def report_concerns(self):
         if self.concerns:
-            concerns_table = Table(box=None)
-            concerns_table.add_column("", justify="left")
-
+            self.console.print("[yellow bold]Concerns")
             for concern in self.concerns:
-                concerns_table.add_row(f"[red]{concern}")
-
-            concerns_table.add_row("")
-
-            panel = Panel(
-                concerns_table,
-                expand=False,
-                title="[yellow bold]Concerns",
-                title_align="left",
-            )
-            self.console.print(panel)
+                self.console.print(f"[red]{concern}")
             self.console.print()
 
 
@@ -156,7 +137,7 @@ class Reporter2D(Reporter):
         edge_count = self.analyzer.n_edges
         point_count = self.analyzer.n_points
 
-        tree = Tree(label="[yellow bold]Elements Stats.")
+        tree = Tree(label="[yellow bold]Elements Statistics")
 
         tree.add("Mesh is 2-Dimensional")
         points_branch = tree.add(f"Points count = {point_count}", highlight=True)
@@ -257,7 +238,7 @@ class Reporter3D(Reporter):
         face_count = self.analyzer.n_faces
         point_count = self.analyzer.n_points
 
-        tree = Tree(label="[yellow bold]Elements Stats.")
+        tree = Tree(label="[yellow bold]Elements Statistics")
 
         tree.add("Mesh is 3-Dimensional")
         points_branch = tree.add(f"Points count = {point_count}", highlight=True)
