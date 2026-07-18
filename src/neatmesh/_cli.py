@@ -45,12 +45,39 @@ def main():
     parser.add_argument(
         "input_file", metavar="input", type=str, nargs=1, help="Input mesh file name"
     )
+    parser.add_argument(
+        "--rules",
+        "-r",
+        type=str,
+        default=None,
+        help="Path to quality rules TOML file",
+    )
+    parser.add_argument(
+        "--length-unit",
+        "-u",
+        type=str,
+        default=None,
+        help="Length unit for reporting (e.g., m, cm, mm)",
+    )
 
     args = parser.parse_args()
     filename = args.input_file[0]
 
     if not os.path.isfile(filename):
         error(f"file {filename} does not exist!")
+
+    if args.rules is not None and not os.path.isfile(args.rules):
+        error(f"rules file {args.rules} does not exist!")
+
+    length_unit = args.length_unit
+    if length_unit is not None:
+        length_unit = length_unit.strip()
+        if not length_unit:
+            length_unit = None
+        elif len(length_unit) > 20:
+            error(
+                f"length unit '{length_unit}' exceeds maximum length of 20 characters"
+            )
 
     console = Console()
 
@@ -61,23 +88,27 @@ def main():
             error(f"{mesh_error}")
 
     if isinstance(mesh, MeshReader3D):
-        reporter = Reporter3D(console, mesh, filename)
+        reporter = Reporter3D(console, mesh, filename, length_unit)
     else:
-        reporter = Reporter2D(console, mesh, filename)
+        reporter = Reporter2D(console, mesh, filename, length_unit)
 
     # Check quality rules file, if exists
-    fname_stripped = Path(filename).stem
-    quality_rules_candidates = [
-        f"{fname_stripped}.toml",
-        "neatmesh.toml",
-        "quality.toml",
-    ]
-
     rules_dict = {}
-    for fname in quality_rules_candidates:
-        if os.path.isfile(fname):
-            rules_dict = toml.load(fname)
-            rules_dict["fname"] = fname
-            break
+    if args.rules is not None:
+        rules_dict = toml.load(args.rules)
+        rules_dict["fname"] = args.rules
+    else:
+        fname_stripped = Path(filename).stem
+        quality_rules_candidates = [
+            f"{fname_stripped}.toml",
+            "neatmesh.toml",
+            "quality.toml",
+        ]
+
+        for fname in quality_rules_candidates:
+            if os.path.isfile(fname):
+                rules_dict = toml.load(fname)
+                rules_dict["fname"] = fname
+                break
 
     reporter.report(rules_dict)
