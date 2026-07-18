@@ -46,12 +46,25 @@ Source: [Introduction to Computational Fluid Dynamics: Governing Equations, Turb
 5. **Neighbor Element Volume/Area Ratio**: ratio between the volume (for 3D mesh) or area (for 2D mesh) of all neighboring cells, defined as `max_vol / min_vol` or `max_area / min_area`, so it's always greater than or equal 1.
 
 ### Quality Rules
-neatmesh will look for a quality rule file in current working directory, `neatmesh.toml` or `quality.toml` or `my_awesome_mesh.toml`. A quality rule file sets maximum values for quality metrics calculated by neatmesh, for example this is the content of a typical `neatmesh.toml` file:
+neatmesh will look for a quality rule file in current working directory: `neatmesh.toml`, `quality.toml`, or `<input_file_stem>.toml`. A quality rule file sets maximum values for quality metrics calculated by neatmesh, for example this is the content of a typical `neatmesh.toml` file:
+
+You can also specify a custom rules file via `--rules` / `-r`:
+
+    neatmesh my_awesome_mesh.su2 --rules /path/to/custom_rules.toml
+
+When `--rules` is provided, it takes precedence over the automatic CWD search.
+
+You can also specify a length unit for reporting via `--length-unit` / `-u`:
+
+    neatmesh my_awesome_mesh.su2 --length-unit m
+
+When provided, the unit is shown in place of the generic `L` (e.g., `[m^2]`, `[m^3]`).
 
     max_non_orhto = 50
     max_face_aspect_ratio = 10
     max_neighbor_volume_ratio = 3
     max_neighbor_area_ratio = 3
+    duplicate_nodes_warning = false
 
 In case no quality rules file was present, neatmesh will use default max. values:
 
@@ -59,4 +72,5 @@ In case no quality rules file was present, neatmesh will use default max. values
     max_face_aspect_ratio = 20
     max_neighbor_volume_ratio = 15
     max_neighbor_area_ratio = 15
+    duplicate_nodes_warning = true (default)
 

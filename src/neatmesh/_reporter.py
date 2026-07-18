@@ -1,7 +1,7 @@
 """Report analyzers output to console"""
 
 import os
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import humanize
 import numpy as np
@@ -17,10 +17,17 @@ from ._reader import MeshReader
 class Reporter:
     """Base class for 2D & 3D reporters"""
 
-    def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
+    def __init__(
+        self,
+        console: Console,
+        mesh: MeshReader,
+        filename: str,
+        length_unit: str | None = None,
+    ) -> None:
         self.console = console
         self.mesh = mesh
         self.filename = filename
+        self.length_unit = length_unit
         self.concerns: List[str] = []
 
     @staticmethod
@@ -70,7 +77,11 @@ class Reporter:
                     )
                     total = metric_dict["array"].shape[0]
                     pct = (n_failed / total) * 100
-                    pct_str = f" ({pct:.2f}%)" if pct > 0.001 else ""
+                    pct_str = (
+                        f" ({pct:.2f}%)"
+                        if pct >= 1
+                        else (f" ({pct:.4f}%)" if pct > 0.001 else "")
+                    )
                     self.concerns.append(
                         f"* Found {n_failed} elements{pct_str} with "
                         f"{metric_name} greater than "
@@ -110,9 +121,9 @@ class Reporter:
         self.console.print("[yellow bold]Mesh bounding box: ")
         for point in self.analyzer.bounding_box():
             if len(point) == 3:
-                print(f"\t({point[0]:.4f}, {point[1]:.4f}, {point[2]:.4f})")
+                print(f"({point[0]:.4f}, {point[1]:.4f}, {point[2]:.4f})")
             else:
-                print(f"\t({point[0]:.4f}, {point[1]:.4f})")
+                print(f"({point[0]:.4f}, {point[1]:.4f})")
         self.console.print()
 
     def report_concerns(self):
@@ -124,13 +135,25 @@ class Reporter:
 
 
 class Reporter2D(Reporter):
-    def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
-        super().__init__(console, mesh, filename)
+    def __init__(
+        self,
+        console: Console,
+        mesh: MeshReader,
+        filename: str,
+        length_unit: str | None = None,
+    ) -> None:
+        super().__init__(console, mesh, filename, length_unit)
 
     def report_mesh_area(self):
-        self.console.print(
-            f"Mesh area = {self.analyzer.area():.4f} [L^2] (in mesh units)\n"
-        )
+        unit = self.length_unit
+        if unit:
+            self.console.print(
+                f"Mesh area = {self.analyzer.area():.4f} [{unit}^2]\n", markup=False
+            )
+        else:
+            self.console.print(
+                f"Mesh area = {self.analyzer.area():.4f} [L^2] (in mesh units)\n"
+            )
 
     def report_elements_count(self):
         face_count = self.analyzer.n_faces
@@ -143,16 +166,17 @@ class Reporter2D(Reporter):
         points_branch = tree.add(f"Nodes count = {point_count}", highlight=True)
 
         duplicate_nodes = self.analyzer.duplicate_nodes_count()
-        duplicate_nodes_branch = (
-            "[green](Ok)" if duplicate_nodes == 0 else "[red](Not good)"
-        )
+        show_warning = self.rules.get("duplicate_nodes_warning", True)
+        status = ""
 
-        if duplicate_nodes > 0:
-            self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
+        if show_warning:
+            if duplicate_nodes == 0:
+                status = "[green](Ok)"
+            else:
+                status = "[yellow](Warning)"
+                self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
 
-        points_branch.add(
-            f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_branch}"
-        )
+        points_branch.add(f"Duplicate nodes = {duplicate_nodes} {status}".rstrip())
 
         tree.add(
             f"Edges count = {edge_count}"
@@ -175,7 +199,8 @@ class Reporter2D(Reporter):
 
         self.console.print(tree)
 
-    def report(self, rules: Dict[str, float]):
+    def report(self, rules: Dict[str, Any]):
+        self.rules = rules
         with self.console.status("Collecting cell types.."):
             self.analyzer = Analyzer2D(self.mesh)  # type: ignore
             self.analyzer.count_face_types()
@@ -223,17 +248,38 @@ class Reporter2D(Reporter):
 
 
 class Reporter3D(Reporter):
-    def __init__(self, console: Console, mesh: MeshReader, filename: str) -> None:
-        super().__init__(console, mesh, filename)
+    def __init__(
+        self,
+        console: Console,
+        mesh: MeshReader,
+        filename: str,
+        length_unit: str | None = None,
+    ) -> None:
+        super().__init__(console, mesh, filename, length_unit)
 
     def report_mesh_volume(self):
-        self.console.print(
-            f"Mesh volume = {self.analyzer.mesh_volume:.3f} [L^3] (in mesh units)"
-        )
+        unit = self.length_unit
+        if unit:
+            self.console.print(
+                f"Mesh volume = {self.analyzer.mesh_volume:.3f} [{unit}^3]",
+                markup=False,
+            )
+        else:
+            self.console.print(
+                f"Mesh volume = {self.analyzer.mesh_volume:.3f} [L^3] (in mesh units)"
+            )
 
     def report_mesh_surface_area(self):
         s_area = self.analyzer.surface_area()
-        self.console.print(f"Mesh surface area = {s_area:.3f} [L^2] (in mesh units)\n")
+        unit = self.length_unit
+        if unit:
+            self.console.print(
+                f"Mesh surface area = {s_area:.3f} [{unit}^2]\n", markup=False
+            )
+        else:
+            self.console.print(
+                f"Mesh surface area = {s_area:.3f} [L^2] (in mesh units)\n"
+            )
 
     def report_elements_count(self):
         cell_count = self.analyzer.n_cells
@@ -246,14 +292,17 @@ class Reporter3D(Reporter):
         points_branch = tree.add(f"Nodes count = {point_count}", highlight=True)
 
         duplicate_nodes = self.analyzer.duplicate_nodes_count()
-        duplicate_nodes_status = (
-            "[green](Ok)" if duplicate_nodes == 0 else "[red](Error)"
-        )
-        if duplicate_nodes > 0:
-            self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
-        points_branch.add(
-            f"Duplicate nodes = {duplicate_nodes} {duplicate_nodes_status}"
-        )
+        show_warning = self.rules.get("duplicate_nodes_warning", True)
+        status = ""
+
+        if show_warning:
+            if duplicate_nodes == 0:
+                status = "[green](Ok)"
+            else:
+                status = "[yellow](Warning)"
+                self.concerns.append(f"* Found {duplicate_nodes} duplicate nodes.")
+
+        points_branch.add(f"Duplicate nodes = {duplicate_nodes} {status}".rstrip())
         faces_branch = tree.add(
             f"Faces count = {face_count}"
             f" (including {self.analyzer.n_boundary_faces} boundary faces)"
@@ -293,7 +342,8 @@ class Reporter3D(Reporter):
 
         self.console.print(tree)
 
-    def report(self, rules: Dict[str, float]):
+    def report(self, rules: Dict[str, Any]):
+        self.rules = rules
         with self.console.status("Collecting cell types.."):
             self.analyzer = Analyzer3D(self.mesh)  # type: ignore
             self.analyzer.count_cell_types()

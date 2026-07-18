@@ -62,3 +62,16 @@ def test_two_triangles_2d_mesh(tmp_path):
     shared_edge_normal = mesh.edge_normals[edge_index]
     theoretical_normal = [0.70710678, 0.70710678]
     assert np.allclose(shared_edge_normal - theoretical_normal, [0.0, 0.0])
+
+
+def test_duplicate_nodes():
+    mesh = read(this_dir / "meshes" / "duplicate_nodes.su2")
+    assert mesh.n_points == 5
+    assert mesh.n_faces == 1
+    assert mesh.n_quad == 1
+    assert mesh.n_edges == 4
+
+    from neatmesh._analyzer import Analyzer2D
+
+    analyzer = Analyzer2D(mesh)
+    assert analyzer.duplicate_nodes_count() == 1
