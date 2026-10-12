@@ -23,8 +23,8 @@ def test_tetra_one_cell():
 
 def test_tetra_mesh():
     this_dir = pathlib.Path(__file__).resolve().parent
-    mesh = assign_reader(this_dir / "meshes" / "fine_cylinder.vtk")
+    mesh = assign_reader(this_dir / "meshes" / "coarse_tetra_cylinder.vtk")
     q = Analyzer3D(mesh)
     q.count_cell_types()
     q.analyze_cells()
-    assert np.allclose(np.sum(q.cells_volumes), [3.14061])
+    assert np.allclose(np.sum(q.cells_volumes), [3.14033])
