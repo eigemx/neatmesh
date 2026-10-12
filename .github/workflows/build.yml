@@ -15,6 +15,13 @@ jobs:
     - uses: actions/checkout@v4
       with:
         lfs: true
+    - name: Check for oversized files
+      run: |
+        find . -path ./.git -prune -o -type f -size +5M -print | tee /tmp/large_files.txt
+        if [ -s /tmp/large_files.txt ]; then
+          echo "::error::Tracked files larger than 5MB are not allowed. Use a generated/coarser fixture."
+          exit 1
+        fi
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
